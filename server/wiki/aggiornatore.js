@@ -126,7 +126,7 @@ class Aggiornatore {
         scriviAtomico(this.fileNovita, JSON.stringify(elenco.slice(0, MAX_NOVITA)));
       }
       this.usa(nuovo);
-      Object.assign(stato, { ultimoSuccesso: new Date().toISOString(), esito: "ok", errore: null, avvisi: nuovo.avvisi || [], cambiamenti: diff.vuoto ? 0 : diff.aggiunti.length + diff.rimossi.length + diff.cambiati.length });
+      Object.assign(stato, { ultimoSuccesso: new Date().toISOString(), esito: "ok", errore: null, avvisi: nuovo.avvisi || [], cambiamenti: diff.totale });
       this.log(`catalogo: fatto, ${nuovo.oggetti.length} oggetti, ${stato.cambiamenti} cambiamenti`);
     } catch (e) {
       Object.assign(stato, { esito: "errore", errore: e.message });

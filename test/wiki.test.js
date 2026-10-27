@@ -210,6 +210,29 @@ test("novità: aggiunti, tolti e valori cambiati", () => {
   assert.equal(confronta(prima, prima).vuoto, true);
 });
 
+test("novità: corazza dei nemici e strutture", () => {
+  const prima = costruisci(grezzo());
+  const dopo = structuredClone(prima);
+  const charger = dopo.nemici.find((n) => n.id === "charger");
+  const parte = charger.parti.find((p) => !p.main);
+  parte.av += 1;
+  parte.durevole = 0.5;
+  dopo.nemici = dopo.nemici.filter((n) => n.id === "charger");
+  dopo.strutture[0].forza += 10;
+  dopo.strutture.push({ fazione: "automi", nome: "Nuova torre", balistica: false, forza: 40 });
+  const d = confronta(prima, dopo);
+  const c = d.nemici.find((x) => x.id === "charger");
+  assert.deepEqual(c.modifiche.find((m) => m.campo === `${parte.nome}: corazza`), { campo: `${parte.nome}: corazza`, prima: parte.av - 1, dopo: parte.av });
+  assert.ok(c.modifiche.some((m) => m.campo === `${parte.nome}: durevolezza (%)` && m.dopo === 50));
+  // I nemici spariti dalla wiki compaiono come tolti
+  assert.equal(d.nemici.filter((x) => x.modifiche[0].campo === "Nemico" && x.modifiche[0].dopo === null).length, prima.nemici.length - 1);
+  const s0 = prima.strutture[0];
+  assert.deepEqual(d.strutture.find((x) => x.nome === s0.nome).modifiche, [{ campo: "Forza di demolizione", prima: s0.forza, dopo: s0.forza + 10 }]);
+  assert.equal(d.strutture.find((x) => x.nome === "Nuova torre").modifiche[0].dopo, "nuova");
+  assert.equal(d.vuoto, false);
+  assert.equal(d.totale, d.nemici.length + d.strutture.length);
+});
+
 test("icone: SVG ripuliti e licenze rispettate", () => {
   const sporco = '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"><script>alert(2)</script><a href="https://x.y">x</a><path d="M0 0" fill="#fff"/></svg>';
   const pulito = pulisciSvg(sporco);
