@@ -1,6 +1,7 @@
 // Scarica dalla wiki (helldivers.wiki.gg, CC BY-NC-SA 4.0) tutto quello che serve al
-// catalogo: pagine di armi, stratagemmi, passive, potenziamenti e nemici, i dati estratti
-// dal gioco (moduli JSON della wiki) e l'elenco delle icone degli stratagemmi.
+// catalogo: pagine di armi, stratagemmi, passive, potenziamenti, nemici e armature, le
+// tabelle Cargo della wiki (armature, elmi, mantelli, passive), le pagine sulle meccaniche
+// del gioco, i dati estratti dal gioco (moduli JSON) e l'elenco delle icone degli stratagemmi.
 const { scarica } = require("./rete");
 
 const WIKI = process.env.WIKI_URL || "https://helldivers.wiki.gg";
@@ -32,6 +33,11 @@ const MODULI = {
   vecchi: "Module:Decodedata-Attacks-2/data.json",
   nuoviOggetti: "Module:Decodedata-Attacks/new gear.json",
 };
+
+// Pagine sulle meccaniche del gioco, mostrate nella sezione Wiki dell'app
+const MECCANICHE = ["Damage", "Status Effects", "Armor", "Difficulty", "Demolition"];
+// Template con i numeri dell'armatura degli Helldiver (moltiplicatori per parte del corpo)
+const MODELLI = { armatura: "Template:Armor Ratings" };
 
 function api(parametri) {
   const q = new URLSearchParams({ format: "json", formatversion: "2", ...parametri });
@@ -119,9 +125,21 @@ async function infoFile(nomi, larghezza = 256) {
   return out;
 }
 
-function modulo(nome) {
+// Righe di una tabella Cargo della wiki, 500 alla volta
+async function cargo(tabella, campi, dove) {
+  const righe = [];
+  for (let offset = 0; offset < 5000; offset += 500) {
+    const r = await api({ action: "cargoquery", tables: tabella, fields: campi.join(","), ...(dove ? { where: dove } : {}), limit: "500", offset: String(offset) });
+    const pezzo = (r.cargoquery || []).map((x) => x.title);
+    righe.push(...pezzo);
+    if (pezzo.length < 500) break;
+  }
+  return righe;
+}
+
+function modulo(nome, tipo = "json") {
   const q = new URLSearchParams({ title: nome, action: "raw" });
-  return scarica(`${WIKI}/index.php?${q}`);
+  return scarica(`${WIKI}/index.php?${q}`, { tipo });
 }
 
 // Elenco dei file SVG della raccolta di icone degli stratagemmi, letto dal suo README
@@ -151,10 +169,31 @@ async function scaricaTutto({ avanzamento = () => {} } = {}) {
     avanzamento(`categoria ${nome}`);
     categorie[chiave] = await membri(nome);
   }
+  // Armature, elmi e mantelli dalle tabelle Cargo: se la wiki le cambia, il resto del
+  // catalogo si aggiorna lo stesso (e l'aggiornatore tiene le armature di prima)
+  const avvisi = [];
+  const tabelle = { armature: [], mantelli: [], passive: [] };
+  try {
+    avanzamento("armature, elmi e mantelli");
+    tabelle.armature = await cargo("Armor", ["title", "image", "type", "armor", "speed", "stam_regen", "passive", "source", "cost", "description", "displayorder"]);
+    tabelle.mantelli = await cargo("Cosmetics", ["title", "image", "type", "source", "cost", "source_type", "displayorder"], 'type="Cape"');
+    tabelle.passive = await cargo("Armor_Passive", ["title", "image", "description", "displayorder"]);
+  } catch (e) {
+    avvisi.push(`armature non scaricate: ${e.message}`);
+  }
+  const pagineArmature = tabelle.armature.filter((a) => /^(light|medium|heavy)$/i.test(a.type)).map((a) => a.title);
   // "Demolition" ha la tabella della forza che serve per distruggere ogni struttura
-  const titoli = [...new Set([...Object.values(categorie).flat(), "Demolition"])].filter((t) => !/^(Template|User|Community|Helldivers 1|Helldivers Wiki):/.test(t));
+  const titoli = [...new Set([...Object.values(categorie).flat(), ...MECCANICHE, ...pagineArmature])].filter((t) => !/^(Template|User|Community|Helldivers 1|Helldivers Wiki):/.test(t));
   avanzamento(`${titoli.length} pagine`);
   const testi = await pagine(titoli);
+  const modelli = {};
+  for (const [chiave, nome] of Object.entries(MODELLI)) {
+    try {
+      modelli[chiave] = await modulo(nome, "testo");
+    } catch (e) {
+      avvisi.push(`${nome} non scaricato: ${e.message}`);
+    }
+  }
   const moduli = {};
   for (const [chiave, nome] of Object.entries(MODULI)) {
     avanzamento(`dati ${nome}`);
@@ -162,7 +201,7 @@ async function scaricaTutto({ avanzamento = () => {} } = {}) {
   }
   avanzamento("icone degli stratagemmi");
   const icone = await iconeStratagemmi();
-  return { scaricato: new Date().toISOString(), categorie, pagine: testi, moduli, iconeStratagemmi: icone };
+  return { scaricato: new Date().toISOString(), categorie, pagine: testi, moduli, iconeStratagemmi: icone, tabelle, modelli, avvisi };
 }
 
-module.exports = { scaricaTutto, infoFile, urlIconaStratagemma, CATEGORIE, MODULI, WIKI, ICONE_REPO };
+module.exports = { scaricaTutto, infoFile, urlIconaStratagemma, CATEGORIE, MODULI, MECCANICHE, WIKI, ICONE_REPO };

@@ -1,6 +1,6 @@
-// Icone del catalogo: le immagini delle armi dalla wiki (miniature PNG, CC BY-NC-SA 4.0)
-// e le icone degli stratagemmi dalla raccolta di nvigneux su GitHub ("Feel free to use them
-// in your own projects"). Si scaricano solo quelle che mancano.
+// Icone del catalogo: le immagini di armi, nemici e armature dalla wiki (miniature PNG,
+// CC BY-NC-SA 4.0) e le icone degli stratagemmi dalla raccolta di nvigneux su GitHub ("Feel
+// free to use them in your own projects"). Si scaricano solo quelle che mancano.
 // Passive e potenziamenti non hanno immagini scaricate: l'app disegna emblemi suoi.
 const fs = require("node:fs");
 const path = require("node:path");
@@ -34,10 +34,10 @@ function pulisciSvg(testo) {
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
 
-// Nome del file locale dell'icona di un oggetto
+// Nome del file locale dell'icona di un oggetto, nemico o armatura
 function nomeFile(o) {
   if (o.icona?.tipo === "stratagemma") return `${o.id}.svg`;
-  if (o.icona?.tipo === "wiki") return `${o.id}.png`;
+  if (o.icona?.tipo === "wiki") return o.icona.nome || `${o.id}.png`;
   return null;
 }
 
@@ -48,11 +48,17 @@ async function prepara(catalogo, { cartella, altre = [], avanzamento = () => {} 
   const avvisi = [];
   const presente = (f) => [cartella, ...altre].some((c) => fs.existsSync(path.join(c, f)));
 
-  const daWiki = catalogo.oggetti.filter((o) => o.icona?.tipo === "wiki" && !presente(nomeFile(o)));
-  const info = daWiki.length ? await infoFile(daWiki.map((o) => o.icona.file), LARGHEZZA) : {};
+  const tutti = [...catalogo.oggetti, ...(catalogo.nemici || []), ...(catalogo.armature || [])];
+  const daWiki = tutti.filter((o) => o.icona?.tipo === "wiki" && !presente(nomeFile(o)));
   if (daWiki.length) avanzamento(`${daWiki.length} immagini dalla wiki`);
+  // Miniature di larghezze diverse (le armature sono più piccole): una richiesta per larghezza
+  const info = {};
+  for (const larghezza of new Set(daWiki.map((o) => o.icona.larghezza || LARGHEZZA))) {
+    const gruppo = daWiki.filter((o) => (o.icona.larghezza || LARGHEZZA) === larghezza);
+    info[larghezza] = await infoFile(gruppo.map((o) => o.icona.file), larghezza);
+  }
   for (const o of daWiki) {
-    const i = info[o.icona.file];
+    const i = info[o.icona.larghezza || LARGHEZZA][o.icona.file];
     try {
       if (!i) throw new Error("immagine non trovata sulla wiki");
       if (licenzaVieta(i.descrizione)) throw new Error("licenza solo per contenuti pubblici");
@@ -77,7 +83,7 @@ async function prepara(catalogo, { cartella, altre = [], avanzamento = () => {} 
     }
   }
 
-  for (const o of catalogo.oggetti) {
+  for (const o of tutti) {
     const f = nomeFile(o);
     o.icona = f && presente(f) ? f : null;
   }

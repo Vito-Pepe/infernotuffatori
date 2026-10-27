@@ -17,9 +17,9 @@ generaCatalogo({ cartellaIcone: path.join(radice, "app", "icone"), grezzo, avanz
     fs.mkdirSync(path.join(radice, "app", "dati"), { recursive: true });
     fs.writeFileSync(path.join(radice, "app", "dati", "catalogo.json"), JSON.stringify(c));
     // Icone rimaste senza oggetto (oggetti tolti dalla wiki): si possono cancellare a mano
-    const usate = new Set(c.oggetti.map((o) => o.icona).filter(Boolean));
+    const usate = new Set([...c.oggetti, ...(c.nemici || []), ...(c.armature || [])].map((o) => o.icona).filter(Boolean));
     const orfane = fs.readdirSync(path.join(radice, "app", "icone")).filter((f) => !usate.has(f));
-    console.log(`Catalogo: ${c.oggetti.length} oggetti, ${c.nemici.length} nemici, versione del gioco ${c.versioneGioco}`);
+    console.log(`Catalogo: ${c.oggetti.length} oggetti, ${c.nemici.length} nemici, ${c.armature?.length || 0} armature, versione del gioco ${c.versioneGioco}`);
     if (c.avvisi.length) console.log("Avvisi:\n  " + c.avvisi.join("\n  "));
     if (orfane.length) console.log("Icone non usate:", orfane.join(", "));
   })

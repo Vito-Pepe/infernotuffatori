@@ -1,6 +1,6 @@
 # Infernotuffatori
 
-Build di **Helldivers 2** condivise tra amici, sul Raspberry Pi. Chi entra dalla tailnet crea le sue build e vede quelle di tutti. Per ogni build l'app calcola le prestazioni dai dati veri del gioco, presi dalla wiki, che si aggiorna da sola quando escono patch.
+Build di **Helldivers 2** condivise tra amici, sul Raspberry Pi, e una **Wiki** con tutte le informazioni del gioco. Chi entra dalla tailnet crea le sue build e vede quelle di tutti. Per ogni build l'app calcola le prestazioni dai dati veri del gioco, presi dalla wiki, che si aggiorna da sola quando escono patch.
 
 - Pagina: `https://infernotuffatori.<tailnet>.ts.net` (indirizzo della repo `ingressi-https`). Niente indirizzo `http://IP:porta`: l'app ascolta solo sul Pi, vedi **Sicurezza**.
 - Si apre anche dal riquadro **Infernotuffatori** della homepage.
@@ -31,14 +31,24 @@ Build di **Helldivers 2** condivise tra amici, sul Raspberry Pi. Chi entra dalla
 - **Importa da democracy-hub**: si incollano i link di condivisione, uno per riga, con il nome davanti se si vuole. Le build arrivano nell'elenco: lì le build salvate restano solo nel browser di chi le ha fatte, qui stanno sul Pi.
 - **Novità**: cosa è cambiato a ogni aggiornamento del catalogo, con i valori prima e dopo: oggetti nuovi, tolti o cambiati (e le build che li usano), nemici (salute, corazza, durevolezza e resistenza di ogni parte) e strutture (forza di demolizione). C'è anche il pulsante **Aggiorna adesso dalla wiki**.
 - **Come calcoliamo**: spiegazione del modello, con fonti e crediti.
+- **Wiki**: tutto sul gioco, con una ricerca su ogni cosa.
+  - **Nemici**: anatomia completa (salute, corazza, durevolezza, danno al corpo, resistenza alle esplosioni e parti fatali), attacchi con danno e perforazione, dove compaiono, comportamento, consigli tattici, varianti, curiosità e modifiche nelle patch. In più le armi, le granate e gli stratagemmi migliori contro ognuno, secondo il nostro modello.
+  - **Armi, granate e stratagemmi**: scheda, grado vero di perforazione (anche quelli che il gioco non mostra), tutti gli attacchi con i dati del gioco, come vanno contro ogni nemico, come si ottengono, consigli, moduli della nave e patch.
+  - **Armature**: tutte le 113 per il corpo, con protezione (base + passiva), danno che si subisce su testa, petto, braccia e gambe, salute effettiva, velocità, stamina e passiva. Ci sono anche gli elmi e i mantelli, che sono estetici.
+  - **Passive e potenziamenti**, con l'effetto preciso e le armature che hanno ogni passiva. **Strutture**, con la forza di demolizione e gli oggetti che bastano.
+  - **Meccaniche del gioco**, in italiano: gradi di perforazione e corazza, danno durevole, esplosioni, parti dei nemici, danno nel tempo ed effetti, stordimento e ragdoll, tipi di danno, distanza, demolizione, armatura degli Helldiver e difficoltà. Le tabelle sono fatte con i dati, e ci sono anche le pagine originali della wiki (in inglese).
 
 ## Il catalogo e l'aggiornamento automatico
 
 Il catalogo viene dalla [Helldivers Wiki](https://helldivers.wiki.gg) (licenza CC BY-NC-SA 4.0):
 - **oggetti**: le pagine di armi, granate, stratagemmi, passive e potenziamenti;
 - **numeri**: i dati estratti dal gioco che la wiki pubblica (danni, perforazione, esplosioni, munizioni, tempi);
-- **nemici**: le schede con salute e corazza di ogni parte;
-- **strutture**: la tabella della forza di demolizione.
+- **nemici**: le schede con salute e corazza di ogni parte, gli attacchi e i testi delle pagine;
+- **strutture**: la tabella della forza di demolizione;
+- **armature, elmi, mantelli e passive**: le tabelle Cargo della wiki;
+- **meccaniche**: le pagine Damage, Status Effects, Armor, Difficulty e Demolition, e i numeri del template "Armor Ratings" (quanto para l'armatura su ogni parte del corpo).
+
+I testi delle pagine (consigli, comportamento, patch...) restano in inglese, come sulla wiki, e il server li manda all'app una pagina alla volta.
 
 **Aggiornamento sul Pi**:
 - Il server controlla la wiki **una volta al giorno**: la prima volta pochi minuti dopo l'avvio, poi ogni 24 ore. Il controllo dura circa mezzo minuto.
@@ -50,7 +60,7 @@ Il catalogo viene dalla [Helldivers Wiki](https://helldivers.wiki.gg) (licenza C
 **Catalogo di riserva**: dentro l'immagine c'è un catalogo di riserva (`app/dati/catalogo.json` e `app/icone/`), così l'app funziona anche senza rete. Si rigenera con `npm run catalogo` quando si prepara una versione nuova dell'app.
 
 **Icone**:
-- Le **armi** usano le immagini della wiki, in miniatura. Si saltano quelle la cui licenza vieta l'uso in contenuti ad accesso riservato.
+- **Armi, nemici e armature** usano le immagini della wiki, in miniatura. Si saltano quelle la cui licenza vieta l'uso in contenuti ad accesso riservato.
 - Gli **stratagemmi** usano la raccolta [nvigneux/Helldivers-2-Stratagems-icons-svg](https://github.com/nvigneux/Helldivers-2-Stratagems-icons-svg) ("Feel free to use them in your own projects"). Gli SVG vengono ripuliti prima di salvarli.
 - **Passive, potenziamenti e fazioni** hanno emblemi disegnati per l'app.
 
@@ -142,7 +152,7 @@ npm run catalogo -- /tmp/grezzo.json                           # catalogo di ris
 
 ## Crediti
 
-- **Dati, statistiche e immagini delle armi**: Helldivers Wiki (wiki.gg) e gli utenti che le hanno caricate, CC BY-NC-SA 4.0. Il catalogo `app/dati/catalogo.json` e le immagini `app/icone/*.png` ne derivano e restano sotto la stessa licenza.
+- **Dati, testi, statistiche e immagini di armi, nemici e armature**: Helldivers Wiki (wiki.gg) e gli utenti che li hanno scritti e caricati, CC BY-NC-SA 4.0. Il catalogo `app/dati/catalogo.json` e le immagini `app/icone/*.png` ne derivano e restano sotto la stessa licenza; ogni pagina della Wiki dell'app porta il link alla pagina originale.
 - **Icone degli stratagemmi** (`app/icone/*.svg`): nvigneux/Helldivers-2-Stratagems-icons-svg.
 - Helldivers è un marchio di Sony Interactive Entertainment; il gioco è di Arrowhead Game Studios. App di appassionati, privata e senza scopo di lucro.
 

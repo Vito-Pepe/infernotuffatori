@@ -384,6 +384,7 @@
     for (const n of nemici) {
       let kpm = 0;
       let nota = null;
+      let parte = null;
       if (area || mina) {
         kpm = uccisioniPerUso(o, n) * usi;
       } else if (o.slot === "granata") {
@@ -410,12 +411,14 @@
           if (u.kpm > kpm) {
             kpm = u.kpm;
             nota = u.colpi;
+            parte = u.parte;
           }
         }
         if (o.tipo === "zaino") kpm *= RESA_DRONE;
       }
       perClasse[n.classe].push(kpm);
-      dettagli.push({ nemico: n.nome, classe: n.classe, kpm: Math.round(kpm * 10) / 10, colpi: nota });
+      // Colpi e parte migliore (dove mirare) solo per le armi in mano: servono alla wiki
+      dettagli.push({ nemico: n.nome, classe: n.classe, kpm: Math.round(kpm * 10) / 10, colpi: nota, parte });
     }
     const kpm = Object.fromEntries(CLASSI.map((c) => [c, media(perClasse[c])]));
     return { ...Object.fromEntries(CLASSI.map((c) => [c, satura(kpm[c], RIFERIMENTO[c])])), kpm, dettagli };

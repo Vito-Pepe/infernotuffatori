@@ -279,3 +279,79 @@ label.campo > span { display: block; font-size: 0.72rem; color: var(--tenue); te
 .messaggio.errore { border-color: #7a1f1f; background: #2a1010; }
 .messaggio.ok { border-color: #1f6f3f; }
 .caricamento { text-align: center; padding: 60px 10px; color: var(--tenue); letter-spacing: 0.2em; text-transform: uppercase; font-size: 0.8rem; }
+
+/* --- Wiki --- */
+.indietro { display: inline-block; text-decoration: none; color: var(--tenue); margin-bottom: 4px; }
+.indietro:hover { color: var(--giallo); }
+.categorie-wiki { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); margin-top: 12px; }
+.categoria-wiki { display: block; padding: 12px; border-radius: var(--raggio); background: var(--pannello); border: 1px solid var(--bordo); text-decoration: none; color: var(--testo); }
+.categoria-wiki:hover { border-color: var(--giallo); }
+.categoria-wiki .nome { font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.categoria-wiki .quanti { margin-left: auto; font-size: 0.75rem; color: var(--inchiostro); background: var(--giallo); border-radius: 999px; padding: 1px 8px; font-weight: 800; }
+.categoria-wiki .descr { font-size: 0.78rem; color: var(--tenue); margin-top: 4px; }
+.riga-wiki .testo { flex: 1 1 auto; }
+.riga-wiki .valori { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; font-size: 0.78rem; color: #cfcfcf; font-variant-numeric: tabular-nums; margin-left: auto; max-width: 50%; flex: none; }
+.riga-wiki .valori.descr { font-size: 0.75rem; color: var(--tenue); max-width: 46%; text-align: right; justify-content: flex-end; }
+.riga-wiki .valori span { white-space: nowrap; }
+@media (max-width: 640px) {
+  .riga-wiki { flex-wrap: nowrap; }
+  .riga-wiki .valori { flex-direction: column; align-items: flex-end; gap: 2px; }
+  .riga-wiki .valori.descr { display: none; }
+}
+.icona.foto { background: #0b0b0b; }
+.icona.foto img { object-fit: cover; }
+.grado { display: inline-block; padding: 0 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 800; line-height: 1.6; white-space: nowrap; background: #2a2a2a; color: #ddd; font-variant-numeric: tabular-nums; }
+.grado.g-1, .grado.g0 { background: #262626; color: #aaa; }
+.grado.g1 { background: #2f3a2f; color: #c9e4c9; }
+.grado.g2 { background: #1f4d2b; color: #b9f2c8; }
+.grado.g3 { background: #5a4b0a; color: #ffe680; }
+.grado.g4 { background: #6b3a0c; color: #ffc58a; }
+.grado.g5, .grado.g6 { background: #6e1d1d; color: #ffb4b4; }
+.grado.g7, .grado.g8 { background: #7a1040; color: #ffb3d4; }
+.grado.g9, .grado.g10 { background: #4a1a7a; color: #dcc2ff; }
+.grado.g11 { background: #000; color: #fff; border: 1px solid #555; }
+.capo-wiki { display: flex; gap: 14px; align-items: flex-start; margin: 6px 0 12px; flex-wrap: wrap; }
+.capo-wiki .info { flex: 1 1 240px; min-width: 0; }
+.capo-wiki h1 { font-size: 1.3rem; letter-spacing: 0.04em; text-transform: none; margin-bottom: 2px; }
+.capo-wiki .scheda { margin-top: 10px; font-size: 0.85rem; }
+.foto-grande { width: 128px; height: 128px; flex: none; border-radius: 8px; background: #000; border: 1px solid var(--bordo); overflow: hidden; display: inline-flex; align-items: center; justify-content: center; }
+.foto-grande img { width: 100%; height: 100%; object-fit: contain; }
+.foto-grande.vuota { color: #444; font-size: 2rem; }
+.foto-grande.oggetto .icona { width: 100%; height: 100%; border: 0; }
+.descrizione-wiki { font-style: italic; color: #d0d0d0; max-width: 760px; }
+.effetto, .perforazione { margin-bottom: 10px; font-size: 0.9rem; }
+.tratti { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.tratti span { font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--bordo-forte); color: #cfcfcf; }
+.scorre { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+.scorre .tabella { min-width: 520px; }
+.scorre .tabella.compatta { min-width: 0; }
+.tabella.compatta th, .tabella.compatta td { padding: 5px 4px; }
+.tabella td.altro { min-width: 210px; }
+.tabella tr.principale td { background: #17150a; }
+.tabella-wiki td, .tabella-wiki th { vertical-align: top; }
+.anatomia td { white-space: nowrap; }
+.prosa p { margin: 0 0 10px; }
+.prosa ul { margin: 0 0 10px; padding-left: 20px; }
+.prosa ul ul { margin: 4px 0; }
+.prosa li { margin-bottom: 4px; }
+.prosa h4 { margin: 14px 0 6px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--giallo); }
+.prosa .scorre { margin: 6px 0 12px; }
+.patch { border-top: 1px solid var(--bordo); padding: 6px 0; }
+.patch:first-child { border-top: 0; }
+.patch summary { cursor: pointer; font-weight: 700; color: #ddd; }
+.patch .prosa { margin-top: 8px; }
+.fonte-wiki { margin-top: 18px; }
+.griglia3 { display: grid; gap: 12px; grid-template-columns: 1fr; margin-top: 12px; }
+@media (min-width: 900px) { .griglia3 { grid-template-columns: repeat(3, 1fr); } }
+.griglia-carte { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.attacco .nome { font-weight: 800; }
+.attacco p { margin: 4px 0; }
+.punteggi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; margin: 10px 0; }
+.punteggi .titolo { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tenue); }
+.punteggi .numero { font-size: 1.8rem; font-weight: 900; color: var(--giallo); font-variant-numeric: tabular-nums; }
+.formula { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem; background: #0f0f0f; border: 1px solid var(--bordo); border-radius: var(--raggio); padding: 8px 10px; overflow-x: auto; white-space: pre-wrap; }
+.indice-guida { margin-bottom: 6px; }
+.chips.avvolte { flex-wrap: wrap; overflow: visible; }
+.chips .chip { flex: none; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--bordo-forte); color: var(--testo); font-size: 0.75rem; font-weight: 700; text-decoration: none; }
+.chips .chip:hover { border-color: var(--giallo); }
+.sezione-guida, #m-pagine { scroll-margin-top: 110px; }

@@ -35,6 +35,28 @@ function leggiJson(file, riserva) {
   }
 }
 
+// Parti del catalogo che vengono da tabelle o pagine a sé: se un giorno mancano (la wiki non
+// risponde o cambia formato) si tengono quelle di prima invece di perdere la sezione
+function riporta(nuovo, vecchio) {
+  const avvisi = [];
+  if (!vecchio) return avvisi;
+  if (!nuovo.armature?.length && vecchio.armature?.length) {
+    Object.assign(nuovo, { armature: vecchio.armature, elmi: vecchio.elmi || [], mantelli: vecchio.mantelli || [] });
+    nuovo.wiki = { ...nuovo.wiki, armature: vecchio.wiki?.armature || {} };
+    avvisi.push("armature non lette dalla wiki: restano quelle di prima");
+  }
+  if (!nuovo.meccaniche?.armatura?.letti && vecchio.meccaniche?.armatura?.letti) {
+    nuovo.meccaniche = { ...nuovo.meccaniche, armatura: vecchio.meccaniche.armatura };
+    avvisi.push("numeri dell'armatura non letti dalla wiki: restano quelli di prima");
+  }
+  if (!Object.keys(nuovo.wiki?.pagine || {}).length && Object.keys(vecchio.wiki?.pagine || {}).length) {
+    nuovo.wiki = { ...nuovo.wiki, pagine: vecchio.wiki.pagine };
+    nuovo.meccaniche = { ...nuovo.meccaniche, pagine: vecchio.meccaniche?.pagine || [] };
+    avvisi.push("pagine delle meccaniche non lette dalla wiki: restano quelle di prima");
+  }
+  return avvisi;
+}
+
 // Scarica, costruisce e prepara le icone: usato dal server e dallo strumento che crea il
 // catalogo di riserva dentro l'immagine
 async function generaCatalogo({ cartellaIcone, altreIcone = [], grezzo, avanzamento = () => {} }) {
@@ -74,10 +96,21 @@ class Aggiornatore {
     this.usa(scelto);
   }
 
+  // I testi della wiki (lunghi) non vanno con il catalogo: il server li manda a pezzi
   usa(catalogo) {
+    const { wiki, ...resto } = catalogo;
     this.catalogo = catalogo;
-    this.testo = JSON.stringify(catalogo);
+    this.wiki = wiki || { oggetti: {}, nemici: {}, armature: {}, pagine: {} };
+    this.testo = JSON.stringify(resto);
     this.etag = `"${crypto.createHash("sha1").update(this.testo).digest("hex").slice(0, 16)}"`;
+    this.etagWiki = crypto.createHash("sha1").update(JSON.stringify(this.wiki)).digest("hex").slice(0, 12);
+  }
+
+  // Testo della wiki di un nemico, oggetto, armatura o pagina delle meccaniche
+  voceWiki(tipo, id) {
+    const gruppo = { nemico: "nemici", oggetto: "oggetti", armatura: "armature", pagina: "pagine" }[tipo];
+    const voce = gruppo && Object.hasOwn(this.wiki[gruppo] || {}, id) ? this.wiki[gruppo][id] : null;
+    return voce ? { voce, etag: `"${this.etagWiki}-${tipo}-${id}"` } : null;
   }
 
   stato() {
@@ -115,6 +148,8 @@ class Aggiornatore {
         altreIcone: [this.iconeApp],
         avanzamento: (m) => this.log(`catalogo: ${m}`),
       });
+      const riportati = riporta(nuovo, this.catalogo);
+      nuovo.avvisi = [...(nuovo.avvisi || []), ...riportati];
       const problemi = controlla(nuovo, this.catalogo);
       if (problemi.length) throw Object.assign(new Error(`dati della wiki incompleti: ${problemi.join("; ")}`), { problemi });
 
