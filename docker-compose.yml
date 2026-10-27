@@ -2,10 +2,17 @@ services:
   infernotuffatori:
     build: .
     ports:
-      # Solo per il Pi stesso: si entra dalla tailnet con https://infernotuffatori.<tailnet>.ts.net
-      # (repo ingressi-https). tailscale serve dice chi è l'utente: se la porta fosse aperta alla LAN
-      # chiunque potrebbe fingersi un altro. 8080-8090 sono già usate da altre app sul Pi.
+      # Solo per il Pi stesso (prove con curl). tailscale serve dice chi è l'utente: se la porta fosse
+      # aperta alla LAN chiunque potrebbe fingersi un altro. 8080-8090 sono già usate da altre app.
       - "127.0.0.1:8091:3000"
+    networks:
+      default: {}
+      # Da qui arriva https://infernotuffatori.<tailnet>.ts.net: l'ingresso della repo ingressi-https
+      # sta in questa rete (non su quella del Pi, perché il dispositivo si condivide con un amico)
+      # e manda le richieste a http://infernotuffatori-app:3000
+      ingresso:
+        aliases:
+          - infernotuffatori-app
     environment:
       # Login Tailscale (separati da virgola) che possono modificare ed eliminare ogni build: nel .env
       AMMINISTRATORI: ${AMMINISTRATORI:-}
@@ -30,3 +37,9 @@ services:
 
 volumes:
   dati:
+
+networks:
+  # La crea la repo ingressi-https: va avviata prima lei (servizio infernotuffatori)
+  ingresso:
+    name: ingresso-infernotuffatori
+    external: true

@@ -87,6 +87,8 @@ docker run --rm -v infernotuffatori_dati:/data -v "$HOME":/backup alpine tar czf
 
 ## Installazione sul Raspberry Pi
 
+Prima l'ingresso HTTPS: il servizio `infernotuffatori` della repo `ingressi-https` crea la rete `ingresso-infernotuffatori`, che l'app usa. Senza, `docker compose up` si ferma con `network ingresso-infernotuffatori declared as external, but could not be found`. Poi:
+
 ```bash
 cd ~
 git clone https://github.com/Vito-Pepe/infernotuffatori.git
@@ -103,12 +105,10 @@ Aggiornamento automatico dell'app ogni 5 minuti (senza sudo):
 (crontab -l 2>/dev/null; echo "*/5 * * * * cd $HOME/infernotuffatori && ./update.sh >> $HOME/infernotuffatori/update.log 2>&1") | crontab -
 ```
 
-L'indirizzo HTTPS è il servizio `infernotuffatori` nella repo `ingressi-https`.
-
-**Amministratori** (facoltativo): possono modificare ed eliminare le build di tutti. Il login Tailscale si legge passando il mouse sul proprio nome in alto a destra. Va nel file `.env` della cartella, mai su git:
+**Amministratori** (facoltativo): possono modificare ed eliminare le build di tutti. Il proprio login Tailscale si legge aprendo `https://infernotuffatori.<tailnet>.ts.net/api/io` (campo `login`). Va nel file `.env` della cartella, mai su git:
 
 ```bash
-echo "AMMINISTRATORI=il-tuo-login-tailscale" >> .env && docker compose up -d
+printf 'AMMINISTRATORI=%s\n' 'il-tuo-login-tailscale' >> .env && docker compose up -d
 ```
 
 ## Far entrare un amico
@@ -123,6 +123,7 @@ Non serve invitarlo nella tailnet: basta **condividergli solo il dispositivo del
 
 - **Niente password**: chi sei lo dice Tailscale. `tailscale serve` (repo `ingressi-https`) aggiunge a ogni richiesta l'utente della tailnet, anche per chi riceve il dispositivo condiviso, e cancella le stesse intestazioni se arrivano da fuori.
 - Per questo il container pubblica la porta **solo su `127.0.0.1:8091`**: nessuno, nemmeno dalla rete di casa, può arrivarci senza passare da Tailscale e fingersi un altro. Chi non è riconosciuto vede tutto ma non può scrivere.
+- **L'ingresso ha una rete sua.** Gli altri ingressi di `ingressi-https` usano la rete del Pi, e in modalità utente Tailscale gira ogni porta del dispositivo sul `127.0.0.1` del Pi. Andrebbe bene per i tuoi dispositivi, non per uno condiviso: l'amico arriverebbe a tutte le porte del Pi. Quello di Infernotuffatori sta invece in una rete Docker a parte (`ingresso-infernotuffatori`), insieme solo all'app, e passa le richieste a `http://infernotuffatori-app:3000`. Chi riceve il dispositivo trova la 443 e nient'altro.
 - **Container**: filesystem in sola lettura (si scrive solo nel volume dei dati e in `/tmp`), utente `node` senza privilegi, nessuna capacità di Linux, `no-new-privileges`, limite di processi.
 - **Pagina**: non carica niente da altri siti (Content-Security-Policy `default-src 'self'`) e non usa cookie. Le icone SVG si servono con una politica che non lascia eseguire niente.
 - **Scritture**: accettate solo in JSON, solo dalla pagina stessa e solo da utenti riconosciuti. Le build vengono controllate oggetto per oggetto.
@@ -149,4 +150,5 @@ npm run catalogo -- /tmp/grezzo.json                           # catalogo di ris
 
 | Uso | Porta |
 |---|---|
-| Pagina e API, solo dal Pi (per `tailscale serve`) | `127.0.0.1:8091` (8080–8090 sono di altre app) |
+| Pagina e API, solo dal Pi (prove con `curl`) | `127.0.0.1:8091` (8080–8090 sono di altre app) |
+| Ingresso HTTPS (repo `ingressi-https`) | rete Docker `ingresso-infernotuffatori`, verso `infernotuffatori-app:3000` |
