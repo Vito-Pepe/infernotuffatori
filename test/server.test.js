@@ -89,6 +89,22 @@ test("salute, identità da Tailscale e catalogo", async () => {
   assert.ok(c.oggetti.length > 200);
   const etag = r.headers.get("etag");
   assert.equal((await chiama("GET", "/api/catalogo", undefined, { "If-None-Match": etag })).stato, 304);
+  assert.ok(!("wiki" in c), "i testi della wiki non viaggiano col catalogo");
+  assert.ok(c.armature.length > 100 && c.nemici.every((n) => n.parti.length));
+});
+
+test("testi della wiki: una voce alla volta, compressa, con ETag", async () => {
+  const r = await fetch(`http://127.0.0.1:${porta}/api/wiki/nemico/charger`, { headers: { "Accept-Encoding": "gzip" } });
+  assert.equal(r.status, 200);
+  const voce = await r.json();
+  assert.ok(voce.anatomia.length > 5 && voce.sezioni.length && voce.attacchi.length);
+  assert.equal((await chiama("GET", "/api/wiki/nemico/charger", undefined, { "If-None-Match": r.headers.get("etag") })).stato, 304);
+  assert.ok((await chiama("GET", "/api/wiki/oggetto/orbital-railcannon-strike")).json.sezioni.length);
+  assert.ok((await chiama("GET", "/api/wiki/pagina/damage")).json.sezioni.length > 2);
+  assert.ok((await chiama("GET", "/api/wiki/armatura/b-24-enforcer")).json);
+  assert.equal((await chiama("GET", "/api/wiki/nemico/nessuno")).stato, 404);
+  assert.equal((await chiama("GET", "/api/wiki/nemico/__proto__")).stato, 400);
+  assert.equal((await chiama("GET", "/api/wiki/altro/charger")).stato, 404);
 });
 
 test("creare, modificare ed eliminare: solo l'autore (o un amministratore)", async () => {

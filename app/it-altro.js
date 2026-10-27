@@ -82,15 +82,22 @@
     return h("li", { class: "cambio" }, `${m.campo}: `, h("del", null, valore(m.prima)), " → ", h("ins", null, valore(m.dopo)));
   }
 
-  // Nemici e strutture cambiati: nome (con la fazione) e l'elenco prima → dopo
-  function gruppoCambi(titolo, voci) {
+  // Nome che porta alla pagina della Wiki, se c'è ancora nel catalogo
+  function nomeWiki(x, tipo) {
+    const c = stato.catalogo;
+    const esiste = tipo === "oggetto" ? oggetto(x.id) : tipo === "nemico" ? c.nemici?.some((n) => n.id === x.id) : tipo === "armatura" ? c.armature?.some((a) => a.id === x.id) : false;
+    return esiste ? h("a", { href: `#/wiki/${tipo}/${x.id}` }, x.nome) : x.nome;
+  }
+
+  // Nemici, strutture e armature cambiati: nome (con fazione o peso) e l'elenco prima → dopo
+  function gruppoCambi(titolo, voci, tipo) {
     if (!voci?.length) return null;
-    const fazione = (f) => (f === "tutte" ? "tutte le fazioni" : G.FAZIONI[f]?.nome || f);
+    const sotto = (x) => (x.peso ? `armatura ${x.peso}` : x.fazione === "tutte" ? "tutte le fazioni" : G.FAZIONI[x.fazione]?.nome || x.fazione || "");
     return h(
       "div",
       { style: "margin-top:6px" },
       h("b", null, titolo),
-      voci.map((x) => h("div", { style: "margin-top:6px" }, h("div", null, x.nome, h("span", { class: "tenue piccolo" }, ` · ${fazione(x.fazione)}`)), h("ul", null, x.modifiche.slice(0, 12).map(voceCambio)))),
+      voci.map((x) => h("div", { style: "margin-top:6px" }, h("div", null, tipo ? nomeWiki(x, tipo) : x.nome, h("span", { class: "tenue piccolo" }, ` · ${sotto(x)}`)), h("ul", null, x.modifiche.slice(0, 12).map(voceCambio)))),
     );
   }
 
@@ -132,18 +139,19 @@
                 "div",
                 { class: "pannello novita-voce" },
                 h("h3", null, `${new Date(n.data).toLocaleString("it-IT")}${n.versioneGioco ? ` · versione ${n.versioneGioco}` : ""}`),
-                n.aggiunti.length ? h("div", null, h("b", null, "Nuovi: "), n.aggiunti.map((x) => x.nome).join(", ")) : null,
+                n.aggiunti.length ? h("div", null, h("b", null, "Nuovi: "), n.aggiunti.map((x, i) => [i ? ", " : "", nomeWiki(x, "oggetto")])) : null,
                 n.rimossi.length ? h("div", null, h("b", null, "Tolti: "), n.rimossi.map((x) => x.nome).join(", ")) : null,
                 n.cambiati.length
                   ? h(
                       "div",
                       null,
                       h("b", null, "Cambiati:"),
-                      n.cambiati.map((x) => h("div", { style: "margin-top:6px" }, h("div", null, x.nome), h("ul", null, x.modifiche.slice(0, 12).map(voceCambio)))),
+                      n.cambiati.map((x) => h("div", { style: "margin-top:6px" }, h("div", null, nomeWiki(x, "oggetto")), h("ul", null, x.modifiche.slice(0, 12).map(voceCambio)))),
                     )
                   : null,
-                gruppoCambi("Nemici:", n.nemici),
+                gruppoCambi("Nemici:", n.nemici, "nemico"),
                 gruppoCambi("Strutture:", n.strutture),
+                gruppoCambi("Armature:", n.armature, "armatura"),
                 interessate.length ? h("div", { class: "piccolo", style: "margin-top:8px" }, "Build che usano oggetti cambiati: ", interessate.map((b, i) => [i ? ", " : "", h("a", { href: `#/build/${b.id}` }, b.nome)])) : null,
               );
             })

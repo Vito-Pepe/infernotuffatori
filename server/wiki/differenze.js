@@ -132,7 +132,7 @@ function confrontaNemici(vecchio, nuovo) {
   return out;
 }
 
-// Strutture: forza di demolizione che serve e se bastano i colpi normali
+// Strutture: forza di demolizione che serve e se ci vuole un'esplosione
 function confrontaStrutture(vecchio, nuovo) {
   const chiave = (x) => `${x.fazione}|${x.nome}`;
   const prima = new Map((vecchio?.strutture || []).map((x) => [chiave(x), x]));
@@ -147,10 +147,36 @@ function confrontaStrutture(vecchio, nuovo) {
     }
     const m = [];
     if (v.forza !== x.forza) m.push({ campo: "Forza di demolizione", prima: v.forza ?? null, dopo: x.forza ?? null });
-    if (Boolean(v.balistica) !== Boolean(x.balistica)) m.push({ campo: "Si rompe anche con i proiettili", prima: v.balistica ? "sì" : "no", dopo: x.balistica ? "sì" : "no" });
+    // balistica = resistenza ai proiettili (BaDR): serve un'esplosione
+    if (Boolean(v.balistica) !== Boolean(x.balistica)) m.push({ campo: "Serve un'esplosione", prima: v.balistica ? "sì" : "no", dopo: x.balistica ? "sì" : "no" });
     if (m.length) out.push({ ...breve(x), modifiche: m });
   }
   for (const [k, v] of prima) if (!dopo.has(k)) out.push({ ...breve(v), modifiche: [{ campo: "Struttura", prima: "c'era", dopo: null }] });
+  return out;
+}
+
+// Armature per il corpo: protezione, velocità, stamina e passiva
+const CAMPI_ARMATURA = { protezione: "Protezione", velocita: "Velocità", stamina: "Rigenerazione stamina", passiva: "Passiva" };
+
+function confrontaArmature(vecchio, nuovo) {
+  // Un catalogo senza armature (versione vecchia) non vuol dire che sono tutte nuove
+  if (!vecchio?.armature?.length) return [];
+  const prima = new Map(vecchio.armature.map((a) => [a.id, a]));
+  const dopo = new Map((nuovo?.armature || []).map((a) => [a.id, a]));
+  const breve = (a) => ({ id: a.id, nome: a.nome, peso: a.peso });
+  const out = [];
+  for (const [id, a] of dopo) {
+    const v = prima.get(id);
+    if (!v) {
+      out.push({ ...breve(a), modifiche: [{ campo: "Armatura", prima: null, dopo: "nuova" }] });
+      continue;
+    }
+    const m = Object.entries(CAMPI_ARMATURA)
+      .filter(([k]) => (v[k] ?? null) !== (a[k] ?? null))
+      .map(([k, nome]) => ({ campo: nome, prima: v[k] ?? null, dopo: a[k] ?? null }));
+    if (m.length) out.push({ ...breve(a), modifiche: m });
+  }
+  for (const [id, v] of prima) if (!dopo.has(id)) out.push({ ...breve(v), modifiche: [{ campo: "Armatura", prima: "c'era", dopo: null }] });
   return out;
 }
 
@@ -169,8 +195,9 @@ function confronta(vecchio, nuovo) {
   }
   const nemici = confrontaNemici(vecchio, nuovo);
   const strutture = confrontaStrutture(vecchio, nuovo);
-  const totale = aggiunti.length + rimossi.length + cambiati.length + nemici.length + strutture.length;
-  return { aggiunti, rimossi, cambiati, nemici, strutture, totale, vuoto: totale === 0 };
+  const armature = confrontaArmature(vecchio, nuovo);
+  const totale = aggiunti.length + rimossi.length + cambiati.length + nemici.length + strutture.length + armature.length;
+  return { aggiunti, rimossi, cambiati, nemici, strutture, armature, totale, vuoto: totale === 0 };
 }
 
 module.exports = { confronta };

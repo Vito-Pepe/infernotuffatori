@@ -63,7 +63,7 @@
           o.tratti?.length ? h("div", { class: "piccolo tenue" }, o.tratti.join(" · ")) : null,
           scheda(o),
           o.fonte ? h("div", { class: "piccolo tenue" }, `Da: ${o.fonte}`) : null,
-          h("a", { class: "piccolo", href: urlWiki(o), target: "_blank", rel: "noopener noreferrer" }, "Apri sulla wiki ↗"),
+          h("div", { class: "piccolo" }, h("a", { href: `#/wiki/oggetto/${o.id}` }, "Tutto nella Wiki"), " · ", h("a", { href: urlWiki(o), target: "_blank", rel: "noopener noreferrer" }, "sulla wiki ↗")),
         ),
       ),
     );
@@ -199,5 +199,5 @@
     );
   });
 
-  window.PaginaBuild = { pannelloAnalisi, pezzo, NOMI_POSTO, NOMI_TIPO };
+  window.PaginaBuild = { pannelloAnalisi, pezzo, scheda, urlWiki, NOMI_POSTO, NOMI_TIPO, FRECCE };
 })();

@@ -96,6 +96,26 @@ function inviaCatalogo(req, res) {
   res.end(catalogo.testo);
 }
 
+// Un testo della wiki (nemico, oggetto, armatura, meccaniche): compresso se il browser vuole
+function inviaVoceWiki(req, res, tipo, id) {
+  if (!/^[a-z0-9-]{1,80}$/.test(id || "")) return errore(res, 400, "Identificativo non valido");
+  const trovata = catalogo.voceWiki(tipo, id);
+  if (!trovata) return errore(res, 404, "Pagina della wiki non trovata");
+  const intestazioni = { ...INTESTAZIONI, "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-cache", ETag: trovata.etag, Vary: "Accept-Encoding" };
+  if (req.headers["if-none-match"] === trovata.etag) {
+    res.writeHead(304, intestazioni);
+    return res.end();
+  }
+  const testo = JSON.stringify(trovata.voce);
+  if (testo.length > 1024 && /\bgzip\b/.test(req.headers["accept-encoding"] || "")) {
+    const dati = zlib.gzipSync(testo);
+    res.writeHead(200, { ...intestazioni, "Content-Encoding": "gzip", "Content-Length": dati.length });
+    return res.end(dati);
+  }
+  res.writeHead(200, intestazioni);
+  res.end(testo);
+}
+
 function puoModificare(chi, b) {
   return Boolean(chi && (chi.amministratore || b.autore?.login === chi.login));
 }
@@ -117,6 +137,7 @@ async function api(req, res, url) {
   if (metodo === "GET" && parti[0] === "io") return rispondi(res, 200, chi || { login: null });
   if (metodo === "GET" && parti[0] === "catalogo") return inviaCatalogo(req, res);
   if (metodo === "GET" && parti[0] === "novita") return rispondi(res, 200, catalogo.novita());
+  if (metodo === "GET" && parti[0] === "wiki" && parti.length === 3) return inviaVoceWiki(req, res, parti[1], parti[2]);
 
   if (parti[0] === "aggiornamento" && parti.length === 1) {
     if (metodo === "GET") return rispondi(res, 200, catalogo.stato());

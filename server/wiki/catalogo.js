@@ -2,8 +2,11 @@
 // armi, granate, stratagemmi, passive delle armature, potenziamenti e nemici, con le
 // statistiche estratte dal gioco. Funzione pura: niente rete, niente file.
 const W = require("./wikitesto");
+const { costruisciArmature, fattoriArmatura, testo: testoCargo } = require("./armature");
+const { enciclopedia, parteAnatomia, PAGINE_MECCANICHE } = require("./enciclopedia");
 
-const VERSIONE = 1;
+// 2: nemici con descrizione e immagine, armature, elmi, mantelli, meccaniche e testi della wiki
+const VERSIONE = 2;
 
 // Stratagemmi degli eventi (fuochi d'artificio, sorvoli): non servono in battaglia
 const ESCLUSI = new Set(["Eagle Fly By", "Orbital Confetti"]);
@@ -449,22 +452,10 @@ function potenziamento(pagina) {
 
 // --- Nemici ---
 
-function percento(v) {
-  const n = W.numero(v);
-  return n == null ? 0 : n / 100;
-}
-
+// Le parti che usa il modello (l'anatomia completa sta nei testi della wiki)
 function parte(r) {
-  const salute = W.pulisci(r.health);
-  return {
-    nome: W.pulisci(r.part_name),
-    salute: /^main/i.test(salute) ? "main" : W.numero(salute),
-    av: W.numero(r.av) ?? 0,
-    durevole: percento(r.durability),
-    versoMain: /^-|^$/.test(W.pulisci(r.percent_to_main)) ? null : percento(r.percent_to_main),
-    fatale: /^yes/i.test(W.pulisci(r.fatal)),
-    resistenzaEsplosioni: percento(r.exdr),
-  };
+  const { nome, salute, av, durevole, versoMain, fatale, resistenzaEsplosioni } = parteAnatomia(r);
+  return { nome, salute, av, durevole, versoMain, fatale, resistenzaEsplosioni };
 }
 
 // Classe del nemico dalla corazza e dalla salute del corpo: pesanti i corazzati grandi
@@ -487,15 +478,23 @@ function nemico(pagina, fazione) {
   const taglia = W.numero(p.size);
   const salute = main?.salute ?? W.numero(p.health);
   if (taglia == null || !salute || !main) return null;
+  const id = slug(pagina.titolo);
+  const immagine = W.pulisci(p.image) || null;
   return {
-    id: slug(pagina.titolo),
+    id,
     nome: pagina.titolo,
     fazione,
     taglia,
     classe: classeNemico(main.av, salute),
     salute,
     fuoco: W.numero(p.fire_mult) ?? 1,
+    ...(W.numero(p.arc_mult) != null ? { arco: W.numero(p.arc_mult) } : {}),
     difficolta: W.numero(p.min_difficulty),
+    ...(W.numero(p.max_difficulty) != null ? { difficoltaMassima: W.numero(p.max_difficulty) } : {}),
+    rango: W.numero(p.rank),
+    stordimento: W.numero(p.stagger_req),
+    descrizione: W.pulisci(p.description) || null,
+    icona: immagine ? { tipo: "wiki", file: immagine, nome: `nemico-${id}.png` } : null,
     parti: parti.filter((x) => x.fatale || x === main).map((x) => (x === main ? { ...x, main: true } : x)),
   };
 }
@@ -629,9 +628,31 @@ function costruisci(grezzo) {
     }
   }
 
+  // Armature dalle tabelle Cargo, con la passiva collegata all'oggetto del catalogo
+  // ("Concussive Padding, Grenadier" → la passiva "Concussive Padding")
+  const { armature, elmi, mantelli } = costruisciArmature(grezzo.tabelle, pagine, { slug, citazione });
+  const passive = oggetti.filter((o) => o.slot === "armatura");
+  const passivaDi = (nome) => {
+    if (!nome) return null;
+    const cercati = [nome, nome.split(",")[0]].map(normalizza);
+    return passive.find((o) => cercati.includes(normalizza(o.nome))) || null;
+  };
+  for (const a of armature) {
+    const pa = passivaDi(a.passiva);
+    if (pa) a.passivaId = pa.id;
+    a.icona = a.immagine ? { tipo: "wiki", file: a.immagine, nome: `armatura-${a.id}.png`, larghezza: 160 } : null;
+  }
+  // Effetto preciso di ogni passiva (con i numeri) dalla tabella Cargo
+  for (const r of grezzo.tabelle?.passive || []) {
+    const o = passivaDi(W.pulisci(testoCargo(r.title)));
+    const effetto = W.pulisci(testoCargo(r.description));
+    if (o && effetto) o.effetto = effetto;
+  }
+
   const versioni = [dati.armi?.wep_version, dati.stratagemmi?.strat_version].filter(Boolean);
   oggetti.sort((a, b) => a.slot.localeCompare(b.slot) || a.nome.localeCompare(b.nome));
   nemici.sort((a, b) => a.fazione.localeCompare(b.fazione) || a.taglia - b.taglia || a.nome.localeCompare(b.nome));
+  const wiki = enciclopedia({ pagine, oggetti, nemici, armature, senzaSigla });
   return {
     versione: VERSIONE,
     generato: grezzo.scaricato || new Date().toISOString(),
@@ -643,7 +664,17 @@ function costruisci(grezzo) {
     oggetti,
     nemici,
     strutture: strutture(pagine.Demolition),
-    avvisi,
+    armature,
+    elmi,
+    mantelli,
+    meccaniche: {
+      armatura: fattoriArmatura(grezzo.modelli?.armatura),
+      pagine: Object.entries(PAGINE_MECCANICHE)
+        .filter(([id]) => wiki.pagine[id])
+        .map(([id, titolo]) => ({ id, titolo })),
+    },
+    wiki,
+    avvisi: [...avvisi, ...(grezzo.avvisi || [])],
   };
 }
 
@@ -670,6 +701,11 @@ function controlla(nuovo, vecchio) {
     if ((nuovo.nemici || []).filter((x) => x.fazione === f).length < 5) problemi.push(`pochi nemici per ${f}`);
   }
   if ((nuovo.strutture || []).length < 10) problemi.push("tabella delle strutture non letta");
+  // Armature: se mancano del tutto l'aggiornatore tiene quelle di prima; se sono poche,
+  // la tabella della wiki è stata letta a metà
+  const armature = (nuovo.armature || []).length;
+  const armaturePrima = (vecchio?.armature || []).length;
+  if (armature && armaturePrima && armature < armaturePrima * 0.85) problemi.push(`le armature passano da ${armaturePrima} a ${armature}`);
   return problemi;
 }
 
