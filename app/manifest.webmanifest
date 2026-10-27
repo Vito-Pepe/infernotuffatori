@@ -1,0 +1,15 @@
+{
+  "name": "Infernotuffatori",
+  "short_name": "Infernotuffatori",
+  "description": "Build di Helldivers 2 condivise",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    { "src": "/icona-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icona-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icona.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

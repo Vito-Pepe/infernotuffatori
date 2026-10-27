@@ -1,0 +1,10 @@
+{
+  "name": "infernotuffatori",
+  "private": true,
+  "description": "Infernotuffatori: build di Helldivers 2 condivise, con il catalogo e le metriche presi dalla wiki",
+  "scripts": {
+    "start": "node server/server.js",
+    "test": "node --test test/*.test.js",
+    "catalogo": "node strumenti/genera-catalogo.js"
+  }
+}
