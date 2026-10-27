@@ -29,7 +29,7 @@ Build di **Helldivers 2** condivise tra amici, sul Raspberry Pi. Chi entra dalla
   - strutture della fazione che la build può distruggere;
   - peso di ogni oggetto e avvisi, per esempio due zaini, due armi di supporto, poco contro i pesanti.
 - **Importa da democracy-hub**: si incollano i link di condivisione, uno per riga, con il nome davanti se si vuole. Le build arrivano nell'elenco: lì le build salvate restano solo nel browser di chi le ha fatte, qui stanno sul Pi.
-- **Novità**: cosa è cambiato a ogni aggiornamento del catalogo, cioè oggetti nuovi, tolti o cambiati con i valori prima e dopo, e le build che li usano. C'è anche il pulsante **Aggiorna adesso dalla wiki**.
+- **Novità**: cosa è cambiato a ogni aggiornamento del catalogo, con i valori prima e dopo: oggetti nuovi, tolti o cambiati (e le build che li usano), nemici (salute, corazza, durevolezza e resistenza di ogni parte) e strutture (forza di demolizione). C'è anche il pulsante **Aggiorna adesso dalla wiki**.
 - **Come calcoliamo**: spiegazione del modello, con fonti e crediti.
 
 ## Il catalogo e l'aggiornamento automatico

@@ -82,6 +82,18 @@
     return h("li", { class: "cambio" }, `${m.campo}: `, h("del", null, valore(m.prima)), " → ", h("ins", null, valore(m.dopo)));
   }
 
+  // Nemici e strutture cambiati: nome (con la fazione) e l'elenco prima → dopo
+  function gruppoCambi(titolo, voci) {
+    if (!voci?.length) return null;
+    const fazione = (f) => (f === "tutte" ? "tutte le fazioni" : G.FAZIONI[f]?.nome || f);
+    return h(
+      "div",
+      { style: "margin-top:6px" },
+      h("b", null, titolo),
+      voci.map((x) => h("div", { style: "margin-top:6px" }, h("div", null, x.nome, h("span", { class: "tenue piccolo" }, ` · ${fazione(x.fazione)}`)), h("ul", null, x.modifiche.slice(0, 12).map(voceCambio)))),
+    );
+  }
+
   function buildCon(ids) {
     const insieme = new Set(ids);
     return stato.build.filter((b) => window.Elenco.oggettiDi(b).some((id) => insieme.has(id)));
@@ -130,7 +142,8 @@
                       n.cambiati.map((x) => h("div", { style: "margin-top:6px" }, h("div", null, x.nome), h("ul", null, x.modifiche.slice(0, 12).map(voceCambio)))),
                     )
                   : null,
-                n.nemici?.length ? h("div", { style: "margin-top:6px" }, h("b", null, "Nemici: "), n.nemici.map((x) => `${x.nome} (${x.modifiche.map((m) => `${m.campo} ${m.prima ?? "—"} → ${m.dopo ?? "—"}`).join(", ")})`).join("; ")) : null,
+                gruppoCambi("Nemici:", n.nemici),
+                gruppoCambi("Strutture:", n.strutture),
                 interessate.length ? h("div", { class: "piccolo", style: "margin-top:8px" }, "Build che usano oggetti cambiati: ", interessate.map((b, i) => [i ? ", " : "", h("a", { href: `#/build/${b.id}` }, b.nome)])) : null,
               );
             })
