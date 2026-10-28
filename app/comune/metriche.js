@@ -174,6 +174,12 @@
     });
     const cadenza = continuo ? 60 : (principale && s.cadenza) || dati.cadenza || 60;
     let riserva = dati.riserva ?? (principale ? s.riserva : null) ?? null;
+    // Armi che si ricaricano un colpo alla volta (fucili a pompa, Evictor, Autocannon): la
+    // wiki dà i colpi di riserva, non i caricatori (la Punisher ne ha 16 nel tubo e 60 di
+    // riserva). Qui la riserva si conta in caricatori. Per l'arma principale vale la scheda
+    // (i dati a volte danno i colpi di un rifornimento), per quelle annidate (lanciagranate
+    // sotto la canna) i dati; senza nessuno dei due (armi a nastro) niente riserva
+    if (dati.munizioni === "rounds" && caricatore) riserva = ((principale ? s.riserva : dati.riserva) ?? 0) / caricatore;
     // Monouso: i colpi disponibili dipendono da quante volte si richiama l'arma
     const monouso = (o.tratti || []).includes("Expendable");
     if (monouso && caricatore) {
@@ -808,6 +814,8 @@
     const zaini = tutti.filter(haZaino);
     if (zaini.length > 1) avvisi.push({ livello: "attenzione", testo: `${zaini.length} oggetti con lo zaino (${zaini.map((o) => o.nome).join(", ")}): se ne porta uno alla volta.` });
     if (supporto.length > 1) avvisi.push({ livello: "attenzione", testo: `${supporto.length} armi di supporto: se ne porta una alla volta (nei punteggi conta la migliore).` });
+    const veicoli = tutti.filter((o) => o.slot === "stratagemma" && o.tipo === "veicolo");
+    if (veicoli.length > 1) avvisi.push({ livello: "attenzione", testo: `${veicoli.length} veicoli (${veicoli.map((o) => o.nome).join(", ")}): se ne guida uno alla volta, ma nei punteggi contano tutti come se lavorassero insieme.` });
     if (voci.pesanti < SOGLIE.pesante[0]) avvisi.push({ livello: "attenzione", testo: "Poco contro i nemici pesanti: serve un'arma anticarro o uno stratagemma che li abbatta." });
     if (voci.leggeri < SOGLIE.leggero[0]) avvisi.push({ livello: "attenzione", testo: "Poco contro le orde di nemici leggeri." });
     if (voci.medi < SOGLIE.medio[0]) avvisi.push({ livello: "attenzione", testo: "Poco contro i nemici medi (corazza media)." });
@@ -834,12 +842,158 @@
     };
   }
 
+  // --- Punteggio veloce, per l'ottimizzatore ---
+  // Lo stesso totale di analizza (potenza.totale, senza arrotondare: lo controlla un test),
+  // con i valori di ogni oggetto calcolati una volta per fazione, perché l'ottimizzatore
+  // prova centinaia di migliaia di build. Per ogni oggetto una "voce" con:
+  // - le uccisioni al minuto già pesate per il suo posto;
+  // - i fattori (1 − valore/10) di sopravvivenza, utilità e controllo;
+  // - per ogni struttura della fazione quanto resta scoperto (1 se non la distrugge).
+  // Se cambia il calcolo di analizza, va cambiato anche qui.
+
+  const cacheTavole = new WeakMap();
+
+  function voceDi(o, catalogo, fazione, strutture) {
+    const posto = o.slot;
+    const conta = posto !== "armatura" && posto !== "potenziamento";
+    const p = conta ? potenza(o, catalogo, fazione) : null;
+    let d = null;
+    if (o.combattimento) {
+      const resta = strutture.map((s) => (demolisce(o, s, catalogo) ? 1 - Math.min(1, usiPerDieciMinuti(o) / (s.balistica ? 4 : 1)) : 1));
+      if (resta.some((x) => x < 1)) d = resta;
+    }
+    return {
+      o,
+      posto,
+      kpm: CLASSI.map((c) => (p ? p.kpm[c] * (PESO[posto] || 1) : 0)),
+      mano: posto === "primaria" || posto === "secondaria" || (posto === "stratagemma" && o.tipo === "arma"),
+      s: 1 - limita(sopravvivenza(o), 0, 10) / 10,
+      u: 1 - limita(utilita(o), 0, 10) / 10,
+      c: 1 - limita(controllo(o), 0, 10) / 10,
+      d,
+      zaino: haZaino(o),
+      arma: posto === "stratagemma" && o.tipo === "arma",
+      veicolo: posto === "stratagemma" && o.tipo === "veicolo",
+    };
+  }
+
+  // Le voci di tutti gli oggetti contro una fazione, con le strutture divise in gruppi
+  // (le varianti di una struttura contano come una, la migliore) e il peso dell'armatura
+  // come una voce a parte
+  function tavola(catalogo, fazione) {
+    let perCatalogo = cacheTavole.get(catalogo);
+    if (!perCatalogo) cacheTavole.set(catalogo, (perCatalogo = new Map()));
+    if (perCatalogo.has(fazione)) return perCatalogo.get(fazione);
+    const strutture = (catalogo.strutture || []).filter((s) => s.fazione === fazione || s.fazione === "tutte");
+    const gruppi = new Map();
+    strutture.forEach((s, j) => {
+      const nome = s.nome.replace(/\s*\([^)]*\)\s*$/, "");
+      if (!gruppi.has(nome)) gruppi.set(nome, []);
+      gruppi.get(nome).push(j);
+    });
+    const voci = new Map((catalogo.oggetti || []).map((o) => [o.id, voceDi(o, catalogo, fazione, strutture)]));
+    const pesi = Object.fromEntries(
+      Object.entries(PESI_ARMATURA).map(([k, p]) => [k, { posto: "peso", kpm: [0, 0, 0], mano: false, s: 1 - p.sopravvivenza / 10, u: 1 - p.utilita / 10, c: 1, d: null }]),
+    );
+    const t = { fazione, voci, pesi, gruppi: [...gruppi.values()], strutture: strutture.length };
+    perCatalogo.set(fazione, t);
+    return t;
+  }
+
+  // Somma di più voci: le armi in mano tengono le due migliori per classe di nemico, il resto
+  // si somma; i fattori si moltiplicano
+  function sommaVoci(t, voci) {
+    const r = { k: [0, 0, 0], a1: [0, 0, 0], a2: [0, 0, 0], s: 1, u: 1, c: 1, d: new Array(t.strutture).fill(1) };
+    for (const v of voci) if (v) aggiungiVoce(r, v);
+    return r;
+  }
+
+  function aggiungiVoce(r, v) {
+    for (let i = 0; i < 3; i++) {
+      const x = v.kpm[i];
+      if (!v.mano) r.k[i] += x;
+      else if (x > r.a1[i]) {
+        r.a2[i] = r.a1[i];
+        r.a1[i] = x;
+      } else if (x > r.a2[i]) r.a2[i] = x;
+    }
+    r.s *= v.s;
+    r.u *= v.u;
+    r.c *= v.c;
+    if (v.d) for (let j = 0; j < v.d.length; j++) r.d[j] *= v.d[j];
+  }
+
+  const RIF = CLASSI.map((c) => RIFERIMENTO[c]);
+
+  // Totale di una somma più una o due voci (senza toccare la somma)
+  function totaleVoci(t, r, v1 = null, v2 = null) {
+    let tot = 0;
+    for (let i = 0; i < 3; i++) {
+      let k = r.k[i];
+      let a1 = r.a1[i];
+      let a2 = r.a2[i];
+      for (const v of [v1, v2]) {
+        if (!v) continue;
+        const x = v.kpm[i];
+        if (!v.mano) k += x;
+        else if (x > a1) {
+          a2 = a1;
+          a1 = x;
+        } else if (x > a2) a2 = x;
+      }
+      k += a1 + SECONDA_ARMA * a2;
+      if (k > 0) tot += (10 * k) / (k + RIF[i]);
+    }
+    tot += 10 * (1 - r.s * (v1 ? v1.s : 1) * (v2 ? v2.s : 1));
+    tot += 10 * (1 - r.u * (v1 ? v1.u : 1) * (v2 ? v2.u : 1));
+    tot += 10 * (1 - r.c * (v1 ? v1.c : 1) * (v2 ? v2.c : 1));
+    if (t.gruppi.length) {
+      const d1 = v1 && v1.d;
+      const d2 = v2 && v2.d;
+      let obi = 0;
+      for (const g of t.gruppi) {
+        let meglio = 0;
+        for (const j of g) {
+          const coperta = 1 - r.d[j] * (d1 ? d1[j] : 1) * (d2 ? d2[j] : 1);
+          if (coperta > meglio) meglio = coperta;
+        }
+        obi += meglio;
+      }
+      tot += (10 * obi) / t.gruppi.length;
+    }
+    return tot;
+  }
+
+  // Le voci di una build (oggetti che non sono nel catalogo: niente) e il suo totale
+  function vociDellaBuild(build, t) {
+    const prendi = (id) => (id && t.voci.get(id)) || null;
+    return [
+      prendi(build.primaria),
+      prendi(build.secondaria),
+      prendi(build.granata),
+      ...[0, 1, 2, 3].map((i) => prendi(build.stratagemmi?.[i])),
+      prendi(build.armatura?.passiva),
+      prendi(build.potenziamento),
+      t.pesi[build.armatura?.peso] || t.pesi.media,
+    ];
+  }
+
+  function punteggio(build, catalogo) {
+    const t = tavola(catalogo, build.fazione || "terminidi");
+    return totaleVoci(t, sommaVoci(t, vociDellaBuild(build, t)));
+  }
+
   function somma(p) {
     return p.leggero + p.medio + p.pesante;
   }
 
   return {
     analizza,
+    punteggio,
+    tavola,
+    sommaVoci,
+    aggiungiVoce,
+    totaleVoci,
     potenza,
     analizzaOggetto,
     demolizione,

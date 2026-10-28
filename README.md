@@ -17,7 +17,10 @@ Build di **Helldivers 2** condivise tra amici, sul Raspberry Pi, e una **Wiki** 
   - 4 stratagemmi, sempre diversi tra loro;
   - passiva dell'armatura con il peso (leggera, media, pesante) e potenziamento.
 
-  Gli oggetti si scelgono da una finestra con ricerca, categorie e ordinamento per efficacia contro leggeri, medi o pesanti. Le metriche si aggiornano a ogni scelta. Una build lasciata a metà su un dispositivo riparte da lì.
+  Gli oggetti si scelgono da una finestra con ricerca, categorie e ordinamento per efficacia contro leggeri, medi o pesanti. Accanto a ogni oggetto c'è di quanto cambia la potenza totale della build se lo si mette in quel posto, e si può ordinare anche così ("Per questa build"). Le metriche si aggiornano a ogni scelta. Una build lasciata a metà su un dispositivo riparte da lì.
+
+  **Consigli**: per ogni posto, il cambio che alza di più il punteggio, da mettere con un tocco ("Metti"), e il confronto con la build migliore della fazione. **Completa i posti vuoti** sceglie il meglio per quelli che mancano, tenendo i pezzi già scelti.
+- **Build migliore**: per ogni fazione, la build con la potenza totale più alta tra quelle che si possono portare in missione: al massimo uno zaino, un'arma di supporto e un veicolo, e passiva e peso di un'armatura che esiste (con il nome dell'armatura). Si apre nel costruttore, per cambiarla e salvarla.
 - **Pagina della build**:
   - ogni oggetto con descrizione, tratti, codice dello stratagemma e scheda (danno, perforazione, caricatore, ricarica, cadenza, chiamata, attesa, usi; per gli stratagemmi anche i valori con i moduli della nave) e un link alla wiki;
   - **Modifica** ed **Elimina** solo per chi l'ha creata (e per gli amministratori), **Duplica** per tutti, **Copia link**.
@@ -27,7 +30,7 @@ Build di **Helldivers 2** condivise tra amici, sul Raspberry Pi, e una **Wiki** 
   - efficacia per distanza;
   - profilo (rumore, ritmo, impatto, pericolo per la squadra);
   - strutture della fazione che la build può distruggere;
-  - peso di ogni oggetto e avvisi, per esempio due zaini, due armi di supporto, poco contro i pesanti.
+  - peso di ogni oggetto e avvisi, per esempio due zaini, due armi di supporto, due veicoli, poco contro i pesanti.
 - **Importa da democracy-hub**: si incollano i link di condivisione, uno per riga, con il nome davanti se si vuole. Le build arrivano nell'elenco: lì le build salvate restano solo nel browser di chi le ha fatte, qui stanno sul Pi.
 - **Novità**: cosa è cambiato a ogni aggiornamento del catalogo, con i valori prima e dopo: oggetti nuovi, tolti o cambiati (e le build che li usano), nemici (salute, corazza, durevolezza e resistenza di ogni parte) e strutture (forza di demolizione). C'è anche il pulsante **Aggiorna adesso dalla wiki**.
 - **Ordini**: il **Major Order** in corso (anche più d'uno), aggiornato ogni mezz'ora:
@@ -82,12 +85,17 @@ Tutto è in `app/comune/metriche.js`, con le costanti commentate; la spiegazione
   - Contano anche danno durevole, esplosioni, fuoco e gas.
   - Le parti difficili da colpire contano come più colpi.
 
-  Poi entrano in conto cadenza, caricatore, ricarica, munizioni e quanti nemici prende un'esplosione, per arrivare alle uccisioni al minuto. Stratagemmi orbitali e aquile contano per uso, insieme ad attesa, riarmo e usi. Le armi in mano si usano una alla volta.
+  Poi entrano in conto cadenza, caricatore, ricarica, munizioni e quanti nemici prende un'esplosione, per arrivare alle uccisioni al minuto. Per le armi che si ricaricano un colpo alla volta (fucili a pompa, Evictor, Senator, Autocannon) la wiki dà i colpi di riserva, non i caricatori. Stratagemmi orbitali e aquile contano per uso, insieme ad attesa, riarmo e usi. Le armi in mano si usano una alla volta.
 - **Classi dei nemici**:
   - **pesanti**: corazza 4 o più e almeno 1000 di salute, oppure 3000 di salute;
   - **medi**: corazza 2-3 o almeno 450 di salute;
   - **leggeri**: tutti gli altri.
 - **Supporto**: regole sul tipo di oggetto e sui suoi effetti (scudi, rifornimenti, mobilità, stordimenti, fumo, gas). Per gli obiettivi conta la forza di demolizione che serve per ogni struttura.
+- **Build migliore e consigli** (`app/comune/ottimizzatore.js`): le combinazioni sono miliardi, quindi niente prove una per una.
+  - Si parte da 12 build: una fatta prendendo ogni volta il pezzo che alza di più il punteggio, le altre a caso ma sempre le stesse.
+  - Da ognuna si cambia un pezzo alla volta, o due stratagemmi insieme, finché il punteggio sale.
+  - Con il catalogo di ottobre 2026 una ricerca molto più lunga (200 partenze, poi tutte le combinazioni di stratagemmi e tutte quelle di armi, granata e potenziamento) trova le stesse build; un test controlla che più partenze non facciano meglio.
+  - Il punteggio veloce che usa (`punteggio` in `metriche.js`) dà lo stesso totale dell'analisi: lo controlla un test.
 
 È un modello nostro: non conosce la mira, la squadra o la difficoltà, e alcune stime sono scelte nostre. Dei punteggi di democracy-hub non si usa niente.
 
@@ -156,7 +164,7 @@ Non serve invitarlo nella tailnet: basta **condividergli solo il dispositivo del
 Senza dipendenze: basta Node 22.
 
 ```bash
-npm test                                                       # test di modello, wiki, importazione e server
+npm test                                                       # test di modello, ottimizzatore, wiki, importazione e server
 DATA_DIR=/tmp/it AGGIORNA_WIKI=0 IDENTITA_PROVA="io|Io" PORT=3000 npm start   # http://localhost:3000
 node strumenti/scarica-wiki.js /tmp/grezzo.json                # materiale grezzo della wiki in un file
 npm run catalogo -- /tmp/grezzo.json                           # catalogo di riserva da quel file

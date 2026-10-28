@@ -86,9 +86,12 @@
     if (sceltaAutore.value !== filtri.autore) sceltaAutore.value = "tutti";
     const chipFazioni = h("div", { class: "chips", style: "margin-top:8px" });
     const elenco = h("div");
+    const migliore = h("a", { class: "pulsante", href: "#/migliore" }, "★ Build migliore");
 
     const ridisegna = () => {
       scriviLocale("it-filtri", filtri);
+      // La build migliore per la fazione che si sta guardando
+      migliore.href = `#/migliore/${ORDINE_FAZIONI.includes(filtri.fazione) ? filtri.fazione : "terminidi"}`;
       chipFazioni.replaceChildren(
         ...[["tutte", "Tutte"], ...ORDINE_FAZIONI.map((f) => [f, G.FAZIONI[f].nome])].map(([v, nome]) =>
           h("button", { type: "button", class: filtri.fazione === v ? "attivo" : "", onclick: () => ((filtri.fazione = v), ridisegna()) }, nome),
@@ -124,7 +127,7 @@
     sceltaAutore.addEventListener("change", () => ((filtri.autore = sceltaAutore.value), ridisegna()));
 
     monta(main, 
-      h("div", { class: "pulsanti", style: "margin-bottom:14px" }, h("a", { class: "pulsante primo", href: "#/nuova" }, "+ Nuova build"), h("a", { class: "pulsante", href: "#/importa" }, "Importa da democracy-hub")),
+      h("div", { class: "pulsanti", style: "margin-bottom:14px" }, h("a", { class: "pulsante primo", href: "#/nuova" }, "+ Nuova build"), migliore, h("a", { class: "pulsante", href: "#/importa" }, "Importa da democracy-hub")),
       h("div", { class: "filtri" }, cerca, sceltaAutore),
       chipFazioni,
       elenco,
