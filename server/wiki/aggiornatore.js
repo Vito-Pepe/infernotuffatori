@@ -8,7 +8,7 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 const { scaricaTutto } = require("./sorgenti");
 const { costruisci, controlla, VERSIONE } = require("./catalogo");
-const { prepara, togliNonUsate } = require("./icone");
+const { prepara, togliNonUsate, autoriCitati } = require("./icone");
 const { confronta } = require("./differenze");
 
 const ORE = 3600 * 1000;
@@ -63,11 +63,13 @@ function riporta(nuovo, vecchio) {
 
 // Scarica, costruisce e prepara le icone: usato dal server e dallo strumento che crea il
 // catalogo di riserva dentro l'immagine
-async function generaCatalogo({ cartellaIcone, altreIcone = [], grezzo, avanzamento = () => {} }) {
+async function generaCatalogo({ cartellaIcone, altreIcone = [], grezzo, avanzamento = () => {}, precedente = null }) {
   const materiale = grezzo || (await scaricaTutto({ avanzamento }));
   const catalogo = costruisci(materiale);
-  const avvisiIcone = await prepara(catalogo, { cartella: cartellaIcone, altre: altreIcone, avanzamento });
+  const avvisiIcone = await prepara(catalogo, { cartella: cartellaIcone, altre: altreIcone, avanzamento, precedente });
   catalogo.avvisi = [...catalogo.avvisi, ...avvisiIcone];
+  // Chi ha fatto le immagini e ci ha dato il permesso di usarle citandolo
+  catalogo.fonti = { ...catalogo.fonti, autoriImmagini: autoriCitati(catalogo) };
   return catalogo;
 }
 
@@ -151,6 +153,7 @@ class Aggiornatore {
         cartellaIcone: this.cartellaIcone,
         altreIcone: [this.iconeApp],
         avanzamento: (m) => this.log(`catalogo: ${m}`),
+        precedente: this.catalogo,
       });
       const riportati = riporta(nuovo, this.catalogo);
       nuovo.avvisi = [...(nuovo.avvisi || []), ...riportati];

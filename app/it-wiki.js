@@ -200,6 +200,22 @@
     return h("span", { class: `${classe} foto${vista}` }, h("img", { src: `/icone/${x.icona}`, alt: x.nome, loading: "lazy", decoding: "async" }));
   }
 
+  // Chi ha fatto l'immagine: ci ha dato il permesso a patto di citarlo
+  function utenteWiki(nome) {
+    return h("a", { href: `https://helldivers.wiki.gg/wiki/User:${encodeURIComponent(String(nome).replace(/ /g, "_"))}`, target: "_blank", rel: "noopener noreferrer" }, nome);
+  }
+
+  function creditoImmagine(x) {
+    return x?.autoreImmagine ? h("p", { class: "tenue piccolo credito-immagine" }, "Disegno di ", utenteWiki(x.autoreImmagine), " per la Helldivers Wiki, usato con il suo permesso.") : null;
+  }
+
+  // Riga per gli elenchi: gli autori dei disegni che compaiono
+  function creditiImmagini(voci) {
+    const autori = [...new Set(voci.map((v) => v.autoreImmagine).filter(Boolean))].sort();
+    if (!autori.length) return null;
+    return h("p", { class: "tenue piccolo" }, "Disegni di ", autori.map((a, i) => [i ? ", " : "", utenteWiki(a)]), " per la Helldivers Wiki, usati con il permesso dell'autore; dove mancano, le immagini ufficiali del gioco.");
+  }
+
   function chips(valori, attuale, scegli) {
     return h(
       "div",
@@ -213,7 +229,7 @@
     return righe.length ? h("dl", { class: "scheda" }, righe.map(([k, v]) => [h("dt", null, k), h("dd", null, v)])) : null;
   }
 
-  function capo(immagine, titolo, sotto, extra) {
+  function capo(immagine, titolo, sotto, ...extra) {
     return h("div", { class: "capo-wiki" }, immagine, h("div", { class: "info" }, h("h1", null, titolo), sotto ? h("div", { class: "tenue piccolo" }, sotto) : null, extra));
   }
 
@@ -299,7 +315,7 @@
       h("div", { class: "filtri", style: "grid-template-columns:1fr" }, cerca),
       risultati,
       griglia,
-      h("p", { class: "tenue piccolo", style: "margin-top:16px" }, `Dati della Helldivers Wiki (helldivers.wiki.gg, CC BY-NC-SA 4.0), aggiornati ogni giorno${c.versioneGioco ? ` · versione del gioco ${c.versioneGioco}` : ""}. I testi sono in inglese, come sulla wiki; spiegazioni, tabelle e confronti sono nostri.`),
+      h("p", { class: "tenue piccolo", style: "margin-top:16px" }, `Dati della Helldivers Wiki (helldivers.wiki.gg, CC BY-NC-SA 4.0), aggiornati ogni giorno${c.versioneGioco ? ` · versione del gioco ${c.versioneGioco}` : ""}. I testi sono in inglese, come sulla wiki; spiegazioni, tabelle e confronti sono nostri.`, c.fonti?.autoriImmagini?.length ? [" Disegni di armature, elmi e mantelli di ", c.fonti.autoriImmagini.map((a, i) => [i ? ", " : "", utenteWiki(a)]), ", usati con il permesso dell'autore."] : null),
     );
     aggiorna();
   }
@@ -878,7 +894,7 @@
       main,
       indietro("#/wiki", "Wiki"),
       h("h1", { style: "margin:6px 0 10px" }, "Armature"),
-      h("div", { class: "pannello testo-lungo", style: "margin-bottom:12px" }, h("p", null, "Danno che subisci rispetto al colpo, per ogni livello di protezione (100 = il danno del colpo, sotto 100% ne pari una parte, sopra 100% ne prendi di più). La protezione può comprendere quella della passiva: per esempio 150 (100 + 50) è un'armatura media con Extra Padding."), riassunto, h("p", { class: "tenue piccolo" }, "Le parti del corpo hanno un loro moltiplicatore (testa ×1,5, braccia e gambe ×0,85); sulla testa l'armatura conta solo sopra 100. ", h("a", { href: "#/wiki/meccaniche/armatura" }, "Tutti i dettagli"))),
+      h("div", { class: "pannello testo-lungo", style: "margin-bottom:12px" }, h("p", null, "Danno che subisci rispetto al colpo, per ogni livello di protezione (100 = il danno del colpo, sotto 100% ne pari una parte, sopra 100% ne prendi di più). La protezione può comprendere quella della passiva: per esempio 150 (100 + 50) è un'armatura media con Extra Padding."), riassunto, h("p", { class: "tenue piccolo" }, "Le parti del corpo hanno un loro moltiplicatore (testa ×1,5, braccia e gambe ×0,85); sulla testa l'armatura conta solo sopra 100. ", h("a", { href: "#/wiki/meccaniche/armatura" }, "Tutti i dettagli")), creditiImmagini(armature())),
       chips(
         [
           ["corpo", "Per il corpo"],
@@ -928,6 +944,7 @@
               ["Costo", costoTesto(v.costo)],
             ]),
             armatura ? h("p", { class: "tenue piccolo" }, "Nell'immagine l'elmo è indossato con l'armatura dello stesso set: ", h("a", { href: `#/wiki/armatura/${armatura.id}` }, armatura.nome), ".") : null,
+            creditoImmagine(v),
             !v.icona ? h("p", { class: "tenue piccolo" }, v.immagineVietata ? "Sulla wiki c'è solo un disegno di un utente che chiede di usarlo solo lì: per rispetto non lo mostriamo." : "Sulla wiki non c'è un'immagine.") : null,
           ),
         ),
@@ -950,7 +967,8 @@
         elmi
           ? h("p", null, "Gli elmi non cambiano niente: valgono 100 per protezione, velocità e stamina, tutti uguali. La testa però è protetta dall'armatura del corpo: se il corpo ha più di 100 di protezione, anche i colpi alla testa fanno meno danni. ", h("a", { href: "#/wiki/meccaniche/armatura" }, "Come funziona"))
           : h("p", null, "I mantelli sono solo estetici: in gioco mostrano dei valori, ma non cambiano protezione, velocità o stamina."),
-        h("p", { class: "tenue piccolo" }, `Tocca una riga per vedere l'immagine più grande. Le immagini sono quelle ufficiali del gioco caricate sulla wiki${elmi ? " (per molti elmi c'è solo quella del set completo nell'armeria)" : ""}.${senza ? ` ${senza} senza immagine: sulla wiki ci sono solo disegni di un utente che chiede di usarli solo lì.` : ""}`),
+        h("p", { class: "tenue piccolo" }, `Tocca una riga per vedere l'immagine più grande.${senza ? ` ${senza} senza immagine.` : ""}`),
+        creditiImmagini(voci),
       ),
       chips(
         [
@@ -995,6 +1013,7 @@
           ["Stamina", a.stamina != null ? `${a.stamina} (rigenerazione)` : null],
           ["Passiva", passiva ? h("a", { href: `#/wiki/oggetto/${passiva.id}` }, a.passiva) : a.passiva],
         ]),
+        creditoImmagine(a),
       ),
       a.descrizione ? h("p", { class: "descrizione-wiki" }, a.descrizione) : null,
       passiva?.effetto ? h("div", { class: "pannello effetto" }, h("b", null, `${passiva.nome}: `), passiva.effetto) : null,

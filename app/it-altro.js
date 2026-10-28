@@ -236,6 +236,9 @@
           "ul",
           null,
           li("Dati, statistiche e immagini delle armi: ", h("a", { href: "https://helldivers.wiki.gg", target: "_blank", rel: "noopener noreferrer" }, "Helldivers Wiki"), " (wiki.gg), licenza CC BY-NC-SA 4.0. Le immagini delle armi sono degli utenti che le hanno caricate."),
+          (stato.catalogo.fonti?.autoriImmagini || []).length
+            ? li("Disegni di armature, elmi e mantelli: ", stato.catalogo.fonti.autoriImmagini.map((a, i) => [i ? ", " : "", h("a", { href: `https://helldivers.wiki.gg/wiki/User:${encodeURIComponent(a.replace(/ /g, "_"))}`, target: "_blank", rel: "noopener noreferrer" }, a)]), " per la Helldivers Wiki, usati con il permesso dell'autore. Dove mancano, immagini ufficiali del gioco (Arrowhead Game Studios) caricate sulla wiki.")
+            : null,
           li("Icone degli stratagemmi: ", h("a", { href: "https://github.com/nvigneux/Helldivers-2-Stratagems-icons-svg", target: "_blank", rel: "noopener noreferrer" }, "nvigneux/Helldivers-2-Stratagems-icons-svg"), "."),
           li("Emblemi di passive, potenziamenti e fazioni: disegnati per questa app."),
           li("Helldivers è un marchio di Sony Interactive Entertainment; il gioco è di Arrowhead Game Studios. App di appassionati, privata e senza scopo di lucro."),

@@ -12,18 +12,28 @@ const { infoFile, urlIconaStratagemma } = require("./sorgenti");
 const LARGHEZZA = 256;
 const MAX_ICONA = 2 * 1024 * 1024;
 
-// Utenti della wiki che ci hanno dato il permesso di usare le loro immagini (vedi sotto)
-const AUTORI_CON_PERMESSO = [];
+// Utenti della wiki che ci hanno dato il permesso di usare le loro immagini, a patto di
+// citarli: l'app mostra il nome accanto all'immagine (o.autoreImmagine) e nei crediti.
+// - YourOnlyNavigator: i disegni di armature, elmi e mantelli (permesso a Vito, ottobre 2026)
+const AUTORI_CON_PERMESSO = ["YourOnlyNavigator"];
+
+// Autore indicato dal modello {{FileAuthor|user=...}} della pagina del file
+function autoreDi(descrizione) {
+  const m = String(descrizione || "").match(/\{\{\s*FileAuthor\s*(?:\|\s*(?:user\s*=\s*)?([^|}]*))?/i);
+  return m ? String(m[1] || "").trim() || null : null;
+}
 
 // Alcune immagini della wiki hanno condizioni in più della licenza, e quelle non si usano:
 // - concesse solo per contenuti pubblici e liberi (la nostra app è privata, solo tailnet);
 // - con il modello {{FileAuthor}} l'autore chiede di usarle solo sulla wiki e di chiedergli
-//   il permesso prima di usarle altrove (per esempio i disegni di armature, elmi e mantelli).
+//   il permesso prima di usarle altrove: si usano solo quelle di chi ce l'ha dato.
 function motivoVieta(descrizione) {
   const d = String(descrizione || "");
   if (/publicly accessible|access-restricted|exclusively for free/i.test(d)) return "licenza solo per contenuti pubblici";
-  const autore = d.match(/\{\{\s*FileAuthor\s*(?:\|\s*(?:user\s*=\s*)?([^|}]*))?/i);
-  if (autore && !AUTORI_CON_PERMESSO.some((a) => a.toLowerCase() === String(autore[1] || "").trim().toLowerCase())) return "l'autore chiede di usarla solo sulla wiki";
+  if (/\{\{\s*FileAuthor\b/i.test(d)) {
+    const autore = autoreDi(d);
+    if (!autore || !AUTORI_CON_PERMESSO.some((a) => a.toLowerCase() === autore.toLowerCase())) return "l'autore chiede di usarla solo sulla wiki";
+  }
   return null;
 }
 
@@ -83,9 +93,10 @@ const GRUPPI = [
 ];
 
 // Scarica le icone mancanti in `cartella` (quelle già presenti in `altre` si saltano).
-// Imposta o.icona = nome del file (e o.vista se serve), oppure null se non c'è.
-// Restituisce gli avvisi.
-async function prepara(catalogo, { cartella, altre = [], avanzamento = () => {} }) {
+// Imposta o.icona = nome del file (e o.vista, o.autoreImmagine se servono), oppure null se
+// non c'è. `precedente` (il catalogo di prima) serve solo a ricordare gli autori se la wiki
+// non risponde. Restituisce gli avvisi.
+async function prepara(catalogo, { cartella, altre = [], avanzamento = () => {}, precedente = null }) {
   fs.mkdirSync(cartella, { recursive: true });
   const avvisi = [];
   const presente = (f) => [cartella, ...altre].some((c) => fs.existsSync(path.join(c, f)));
@@ -113,10 +124,13 @@ async function prepara(catalogo, { cartella, altre = [], avanzamento = () => {} 
   if (daScaricare) avanzamento(`${daScaricare} immagini dalla wiki`);
   // Voci rimaste senza immagine perché le uniche sulla wiki hanno condizioni (per gruppo)
   const vietate = new Map();
+  // Autori delle immagini già in uso, se oggi la wiki non risponde
+  const autoriPrima = new Map(GRUPPI.flatMap(([k]) => precedente?.[k] || []).filter((x) => x.autoreImmagine && typeof x.icona === "string").map((x) => [x.icona, x.autoreImmagine]));
   for (const o of daWiki) {
     const larghezza = o.icona.larghezza || LARGHEZZA;
     let scelta = null;
     let motivo = null;
+    let autore = null;
     for (const c of candidati.get(o)) {
       if (!letto) {
         if (presente(c.locale)) scelta = c;
@@ -127,6 +141,7 @@ async function prepara(catalogo, { cartella, altre = [], avanzamento = () => {} 
       if (!i) continue;
       motivo = motivoVieta(i.descrizione) || motivo;
       if (motivoVieta(i.descrizione)) continue;
+      autore = autoreDi(i.descrizione);
       if (!presente(c.locale)) {
         try {
           const dati = await scarica(i.miniatura, { tipo: "byte", massimo: MAX_ICONA });
@@ -148,6 +163,10 @@ async function prepara(catalogo, { cartella, altre = [], avanzamento = () => {} 
     o.icona = scelta ? scelta.locale : null;
     if (scelta?.vista) o.vista = scelta.vista;
     else delete o.vista;
+    // Chi ha fatto l'immagine, da citare (chi ci ha dato il permesso lo chiede)
+    if (scelta && !letto) autore = autoriPrima.get(scelta.locale) || null;
+    if (scelta && autore) o.autoreImmagine = autore;
+    else delete o.autoreImmagine;
     // Per spiegarlo nell'app: c'era solo un'immagine che l'autore non vuole fuori dalla wiki
     if (!scelta && motivo) o.immagineVietata = true;
     else delete o.immagineVietata;
@@ -209,4 +228,9 @@ function togliNonUsate(cartella, catalogo) {
   return tolte;
 }
 
-module.exports = { prepara, pulisciSvg, licenzaVieta, motivoVieta, nomeLocale, iconeUsate, togliNonUsate };
+// Autori da citare nei crediti: chi ci ha dato il permesso e ha immagini nel catalogo
+function autoriCitati(catalogo) {
+  return [...new Set(GRUPPI.flatMap(([k]) => catalogo?.[k] || []).map((o) => o.autoreImmagine).filter(Boolean))].sort();
+}
+
+module.exports = { prepara, pulisciSvg, licenzaVieta, motivoVieta, autoreDi, autoriCitati, nomeLocale, iconeUsate, togliNonUsate, AUTORI_CON_PERMESSO };

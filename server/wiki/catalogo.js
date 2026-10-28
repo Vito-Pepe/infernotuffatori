@@ -737,21 +737,22 @@ function costruisci(grezzo) {
     const pa = passivaDi(a.passiva);
     if (pa) a.passivaId = pa.id;
   }
-  // Immagini: prima quelle ufficiali del gioco caricate sulla wiki (il set indossato
-  // nell'armeria, le icone dell'armeria), poi il disegno della tabella Cargo. Molti disegni
-  // sono di un utente che chiede di usarli solo sulla wiki: icone.js li salta.
+  // Immagini: prima il disegno della tabella Cargo (quasi tutti di YourOnlyNavigator, che ci
+  // ha dato il permesso a patto di citarlo), poi quelle ufficiali del gioco caricate sulla
+  // wiki (il set indossato nell'armeria, le icone dell'armeria). Le condizioni degli autori
+  // le controlla icone.js.
   const candidati = (...file) => [...new Map(file.filter((c) => c?.file).map((c) => [c.file, c])).values()];
   const iconaWiki = (...file) => ({ tipo: "wiki", candidati: candidati(...file), larghezza: 160 });
   const nomiArmature = new Set(armature.map((a) => a.nome));
   for (const a of armature) {
-    a.icona = iconaWiki({ file: `${a.nome} Armor Set Image.png`, vista: "set" }, { file: `${a.nome} Body Icon.png` }, { file: `${a.nome} Body Armory.png` }, { file: a.immagine });
+    a.icona = iconaWiki({ file: a.immagine }, { file: `${a.nome} Armor Set Image.png`, vista: "set" }, { file: `${a.nome} Body Icon.png` }, { file: `${a.nome} Body Armory.png` });
   }
   for (const e of elmi) {
     // Se non c'è un'immagine dell'elmo da solo, il set con l'armatura dello stesso nome
     const set = nomiArmature.has(e.nome) ? { file: `${e.nome} Armor Set Image.png`, vista: "set" } : null;
-    e.icona = iconaWiki({ file: `${e.nome} Helmet Icon.png` }, { file: `${e.nome} Helmet Armory.png` }, { file: e.immagine }, set);
+    e.icona = iconaWiki({ file: e.immagine }, { file: `${e.nome} Helmet Icon.png` }, { file: `${e.nome} Helmet Armory.png` }, set);
   }
-  for (const m of mantelli) m.icona = iconaWiki({ file: `${m.nome} Cape Icon.png` }, { file: `${m.nome} Cape Armory.png` }, { file: m.immagine });
+  for (const m of mantelli) m.icona = iconaWiki({ file: m.immagine }, { file: `${m.nome} Cape Icon.png` }, { file: `${m.nome} Cape Armory.png` });
   // Effetto preciso di ogni passiva (con i numeri) dalla tabella Cargo
   for (const r of grezzo.tabelle?.passive || []) {
     const o = passivaDi(W.pulisci(testoCargo(r.title)));

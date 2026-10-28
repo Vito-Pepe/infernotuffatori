@@ -61,8 +61,8 @@ I testi delle pagine (consigli, comportamento, patch...) restano in inglese, com
 **Catalogo di riserva**: dentro l'immagine c'è un catalogo di riserva (`app/dati/catalogo.json` e `app/icone/`), così l'app funziona anche senza rete. Si rigenera con `npm run catalogo` quando si prepara una versione nuova dell'app.
 
 **Icone**:
-- **Armi, nemici, armature, elmi e mantelli** usano le immagini della wiki, in miniatura. Per armature, elmi e mantelli si preferiscono quelle ufficiali del gioco caricate sulla wiki: il set completo nell'armeria (per gli elmi senza un'immagine a sé l'app ingrandisce la testa) e le icone dell'armeria.
-- Si saltano le immagini con condizioni in più della licenza: quelle concesse solo per contenuti pubblici (l'app è privata) e quelle con il modello `{{FileAuthor}}`, dove l'autore chiede di usarle solo sulla wiki e di chiedergli il permesso. Sono quasi tutti i disegni di armature, elmi e mantelli: per questo molti mantelli non hanno l'immagine. Se un autore ci dà il permesso, il suo nome va in `AUTORI_CON_PERMESSO` (`server/wiki/icone.js`).
+- **Armi, nemici, armature, elmi e mantelli** usano le immagini della wiki, in miniatura. Per armature, elmi e mantelli sono quasi tutti disegni di **YourOnlyNavigator**, che ci ha dato il permesso di usarli a patto di citarlo: l'app scrive il suo nome accanto a ogni disegno, negli elenchi, nella Wiki e nei crediti. Dove manca un disegno si usano le immagini ufficiali del gioco caricate sulla wiki (il set completo nell'armeria, con la testa ingrandita per gli elmi, e le icone dell'armeria).
+- Si saltano le immagini con condizioni in più della licenza: quelle concesse solo per contenuti pubblici (l'app è privata) e quelle con il modello `{{FileAuthor}}`, dove l'autore chiede di usarle solo sulla wiki, a meno che non ci abbia dato il permesso: chi l'ha dato è in `AUTORI_CON_PERMESSO` (`server/wiki/icone.js`).
 - La licenza si ricontrolla a ogni aggiornamento anche per le immagini già scaricate; dopo un aggiornamento riuscito quelle che il catalogo non usa più si tolgono dal volume.
 - Gli **stratagemmi** usano la raccolta [nvigneux/Helldivers-2-Stratagems-icons-svg](https://github.com/nvigneux/Helldivers-2-Stratagems-icons-svg) ("Feel free to use them in your own projects"). Gli SVG vengono ripuliti prima di salvarli.
 - **Passive, potenziamenti e fazioni** hanno emblemi disegnati per l'app.
@@ -155,7 +155,8 @@ npm run catalogo -- /tmp/grezzo.json                           # catalogo di ris
 
 ## Crediti
 
-- **Dati, testi, statistiche e immagini di armi, nemici, armature, elmi e mantelli**: Helldivers Wiki (wiki.gg) e gli utenti che li hanno scritti e caricati, CC BY-NC-SA 4.0 (le immagini ufficiali del gioco sono di Arrowhead Game Studios). Il catalogo `app/dati/catalogo.json` e le immagini `app/icone/*.png` ne derivano e restano sotto la stessa licenza; ogni pagina della Wiki dell'app porta il link alla pagina originale.
+- **Dati, testi, statistiche e immagini di armi, nemici, armature, elmi e mantelli**: Helldivers Wiki (wiki.gg) e gli utenti che li hanno scritti e caricati, CC BY-NC-SA 4.0 (le immagini ufficiali del gioco sono di Arrowhead Game Studios).
+- **Disegni di armature, elmi e mantelli**: [YourOnlyNavigator](https://helldivers.wiki.gg/wiki/User:YourOnlyNavigator) per la Helldivers Wiki, usati con il suo permesso. Il catalogo `app/dati/catalogo.json` e le immagini `app/icone/*.png` ne derivano e restano sotto la stessa licenza; ogni pagina della Wiki dell'app porta il link alla pagina originale.
 - **Icone degli stratagemmi** (`app/icone/*.svg`): nvigneux/Helldivers-2-Stratagems-icons-svg.
 - Helldivers è un marchio di Sony Interactive Entertainment; il gioco è di Arrowhead Game Studios. App di appassionati, privata e senza scopo di lucro.
 
