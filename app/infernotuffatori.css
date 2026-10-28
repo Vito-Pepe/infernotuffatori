@@ -410,3 +410,32 @@ span.chip { cursor: help; }
 /* --- Moduli della nave nella scheda --- */
 .con-moduli { color: #b9f2c8; }
 .moduli-nave { margin-top: 6px; }
+
+/* --- Ordini: Major Order --- */
+.ordine { margin-bottom: 14px; border-left: 3px solid var(--giallo); }
+.ordine.completato { border-left-color: var(--verde); }
+.testa-ordine { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 8px; }
+.testa-ordine h2 { margin: 0; font-size: 1.05rem; letter-spacing: 0.05em; color: var(--testo); flex: 1 1 200px; }
+.testa-ordine .etichetta { font-size: 0.7rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; color: var(--inchiostro); background: var(--giallo); border-radius: 999px; padding: 1px 8px; }
+.testa-ordine .scadenza { font-size: 0.78rem; color: var(--tenue); font-variant-numeric: tabular-nums; }
+.briefing { font-style: italic; color: #d0d0d0; white-space: pre-line; margin: 4px 0 8px; }
+.obiettivo-ordine { margin: 0 0 8px; white-space: pre-line; }
+.compiti { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 10px; }
+.compito .riga-compito { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.compito .segno { color: var(--tenue); font-weight: 900; width: 1em; flex: none; }
+.compito.fatto .segno { color: var(--verde); }
+.compito .testo-compito { flex: 1 1 200px; font-weight: 700; min-width: 0; }
+.compito .numeri { font-size: 0.85rem; font-variant-numeric: tabular-nums; color: #e0e0e0; }
+.barra-ordine { height: 8px; border-radius: 999px; background: #262626; overflow: hidden; margin: 5px 0 4px 1.5em; }
+.barra-ordine span { display: block; height: 100%; background: var(--giallo); border-radius: 999px; }
+.barra-ordine.piena span { background: var(--verde); }
+.compito > .tenue, .compito > .ritmo { margin-left: 1.5em; display: block; }
+.ritmo { font-size: 0.78rem; color: #cfcfcf; }
+.ritmo.in-tempo { color: #b9f2c8; }
+.ritmo.tardi { color: #ffb4b4; }
+.ritmo.fermo { color: var(--tenue); }
+.ricompensa { font-size: 0.9rem; margin-top: 6px; }
+.fatto-ordine { margin-top: 6px; color: #b9f2c8; font-weight: 700; font-size: 0.85rem; }
+.avviso-ordini { border-color: #6b3a0c; background: #1d140a; margin-bottom: 12px; }
+.dispacci .dispaccio + .dispaccio { border-top: 1px solid var(--bordo); margin-top: 10px; padding-top: 10px; }
+.dispacci p { margin: 2px 0 0; white-space: pre-line; }

@@ -30,6 +30,12 @@ Build di **Helldivers 2** condivise tra amici, sul Raspberry Pi, e una **Wiki** 
   - peso di ogni oggetto e avvisi, per esempio due zaini, due armi di supporto, poco contro i pesanti.
 - **Importa da democracy-hub**: si incollano i link di condivisione, uno per riga, con il nome davanti se si vuole. Le build arrivano nell'elenco: lì le build salvate restano solo nel browser di chi le ha fatte, qui stanno sul Pi.
 - **Novità**: cosa è cambiato a ogni aggiornamento del catalogo, con i valori prima e dopo: oggetti nuovi, tolti o cambiati (e le build che li usano), nemici (salute, corazza, durevolezza e resistenza di ogni parte) e strutture (forza di demolizione). C'è anche il pulsante **Aggiorna adesso dalla wiki**.
+- **Ordini**: il **Major Order** in corso (anche più d'uno), aggiornato ogni mezz'ora:
+  - titolo, racconto e obiettivo con i testi del gioco in italiano, scadenza con il conto alla rovescia, ricompensa;
+  - ogni obiettivo in italiano (liberare, difendere o tenere un pianeta, eliminare nemici, missioni, operazioni…) con la percentuale e i numeri: fatto, traguardo e quanto manca;
+  - per i pianeti: chi li tiene, quanto sono liberati, la difesa in corso e quanti Helldiver ci sono ora;
+  - il **ritmo** delle ultime ore e, a quel ritmo, quando finisce e se si arriva in tempo;
+  - i Helldiver in gioco e gli ultimi dispacci.
 - **Come calcoliamo**: spiegazione del modello, con fonti e crediti.
 - **Wiki**: tutto sul gioco, con una ricerca su ogni cosa.
   - **Nemici**: anatomia completa (salute, corazza, durevolezza, danno al corpo, resistenza alle esplosioni e parti fatali), attacchi con danno e perforazione, dove compaiono, comportamento, consigli tattici, varianti, curiosità e modifiche nelle patch. In più le armi, le granate e gli stratagemmi migliori contro ognuno, secondo il nostro modello.
@@ -61,8 +67,8 @@ I testi delle pagine (consigli, comportamento, patch...) restano in inglese, com
 **Catalogo di riserva**: dentro l'immagine c'è un catalogo di riserva (`app/dati/catalogo.json` e `app/icone/`), così l'app funziona anche senza rete. Si rigenera con `npm run catalogo` quando si prepara una versione nuova dell'app.
 
 **Icone**:
-- **Armi, nemici, armature, elmi e mantelli** usano le immagini della wiki, in miniatura. Per armature, elmi e mantelli si preferiscono quelle ufficiali del gioco caricate sulla wiki: il set completo nell'armeria (per gli elmi senza un'immagine a sé l'app ingrandisce la testa) e le icone dell'armeria.
-- Si saltano le immagini con condizioni in più della licenza: quelle concesse solo per contenuti pubblici (l'app è privata) e quelle con il modello `{{FileAuthor}}`, dove l'autore chiede di usarle solo sulla wiki e di chiedergli il permesso. Sono quasi tutti i disegni di armature, elmi e mantelli: per questo molti mantelli non hanno l'immagine. Se un autore ci dà il permesso, il suo nome va in `AUTORI_CON_PERMESSO` (`server/wiki/icone.js`).
+- **Armi, nemici, armature, elmi e mantelli** usano le immagini della wiki, in miniatura. Per armature, elmi e mantelli sono quasi tutti disegni di **YourOnlyNavigator**, che ci ha dato il permesso di usarli a patto di citarlo: l'app scrive il suo nome accanto a ogni disegno, negli elenchi, nella Wiki e nei crediti. Dove manca un disegno si usano le immagini ufficiali del gioco caricate sulla wiki (il set completo nell'armeria, con la testa ingrandita per gli elmi, e le icone dell'armeria).
+- Si saltano le immagini con condizioni in più della licenza: quelle concesse solo per contenuti pubblici (l'app è privata) e quelle con il modello `{{FileAuthor}}`, dove l'autore chiede di usarle solo sulla wiki, a meno che non ci abbia dato il permesso: chi l'ha dato è in `AUTORI_CON_PERMESSO` (`server/wiki/icone.js`).
 - La licenza si ricontrolla a ogni aggiornamento anche per le immagini già scaricate; dopo un aggiornamento riuscito quelle che il catalogo non usa più si tolgono dal volume.
 - Gli **stratagemmi** usano la raccolta [nvigneux/Helldivers-2-Stratagems-icons-svg](https://github.com/nvigneux/Helldivers-2-Stratagems-icons-svg) ("Feel free to use them in your own projects"). Gli SVG vengono ripuliti prima di salvarli.
 - **Passive, potenziamenti e fazioni** hanno emblemi disegnati per l'app.
@@ -90,7 +96,8 @@ Tutto è in `app/comune/metriche.js`, con le costanti commentate; la spiegazione
 Tutto sta nel volume Docker `infernotuffatori_dati`:
 - `build.json`: le build e l'ordine degli elenchi. Ogni salvataggio scrive un file nuovo e poi lo sostituisce;
 - `backup/`: una copia al giorno di `build.json`, le ultime 14;
-- `catalogo/`: il catalogo aggiornato dalla wiki (`catalogo.json`), le icone scaricate (`icone/`), lo stato dell'ultimo controllo (`stato.json`) e le novità (`novita.json`).
+- `catalogo/`: il catalogo aggiornato dalla wiki (`catalogo.json`), le icone scaricate (`icone/`), lo stato dell'ultimo controllo (`stato.json`) e le novità (`novita.json`);
+- `ordini/`: gli ultimi ordini letti dal gioco (`ordini.json`) e lo storico dell'avanzamento per il ritmo (`storico.json`, le ultime due settimane circa).
 
 Backup completo dal Pi:
 
@@ -140,7 +147,9 @@ Non serve invitarlo nella tailnet: basta **condividergli solo il dispositivo del
 - **Container**: filesystem in sola lettura (si scrive solo nel volume dei dati e in `/tmp`), utente `node` senza privilegi, nessuna capacità di Linux, `no-new-privileges`, limite di processi.
 - **Pagina**: non carica niente da altri siti (Content-Security-Policy `default-src 'self'`) e non usa cookie. Le icone SVG si servono con una politica che non lascia eseguire niente.
 - **Scritture**: accettate solo in JSON, solo dalla pagina stessa e solo da utenti riconosciuti. Le build vengono controllate oggetto per oggetto.
-- **Collegamenti verso Internet**, fatti solo dal server: la wiki (`helldivers.wiki.gg`) e la raccolta di icone (`raw.githubusercontent.com`), una volta al giorno.
+- **Collegamenti verso Internet**, fatti solo dal server e solo in lettura:
+  - una volta al giorno: la wiki (`helldivers.wiki.gg`) e `raw.githubusercontent.com` (icone degli stratagemmi; nomi di pianeti e oggetti della raccolta `helldivers-2/json`);
+  - ogni mezz'ora, per il Major Order: l'API del gioco (`api.live.prod.thehelldiversgame.com`, la stessa che usano il gioco e i siti della community, senza account).
 
 ## Sviluppo
 
@@ -155,7 +164,8 @@ npm run catalogo -- /tmp/grezzo.json                           # catalogo di ris
 
 ## Crediti
 
-- **Dati, testi, statistiche e immagini di armi, nemici, armature, elmi e mantelli**: Helldivers Wiki (wiki.gg) e gli utenti che li hanno scritti e caricati, CC BY-NC-SA 4.0 (le immagini ufficiali del gioco sono di Arrowhead Game Studios). Il catalogo `app/dati/catalogo.json` e le immagini `app/icone/*.png` ne derivano e restano sotto la stessa licenza; ogni pagina della Wiki dell'app porta il link alla pagina originale.
+- **Dati, testi, statistiche e immagini di armi, nemici, armature, elmi e mantelli**: Helldivers Wiki (wiki.gg) e gli utenti che li hanno scritti e caricati, CC BY-NC-SA 4.0 (le immagini ufficiali del gioco sono di Arrowhead Game Studios).
+- **Disegni di armature, elmi e mantelli**: [YourOnlyNavigator](https://helldivers.wiki.gg/wiki/User:YourOnlyNavigator) per la Helldivers Wiki, usati con il suo permesso. Il catalogo `app/dati/catalogo.json` e le immagini `app/icone/*.png` ne derivano e restano sotto la stessa licenza; ogni pagina della Wiki dell'app porta il link alla pagina originale.
 - **Icone degli stratagemmi** (`app/icone/*.svg`): nvigneux/Helldivers-2-Stratagems-icons-svg.
 - Helldivers è un marchio di Sony Interactive Entertainment; il gioco è di Arrowhead Game Studios. App di appassionati, privata e senza scopo di lucro.
 

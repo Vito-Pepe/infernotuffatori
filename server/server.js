@@ -9,13 +9,15 @@ const { Archivio, FAZIONI, idValido } = require("./archivio");
 const { identita } = require("./identita");
 const { valida } = require("./build");
 const { Aggiornatore } = require("./wiki/aggiornatore");
+const { Ordini } = require("./ordini/ordini");
 
 const PORTA = Number(process.env.PORT) || 3000;
 const CARTELLA_DATI = process.env.DATA_DIR || "/data";
 const CARTELLA_APP = path.resolve(process.env.APP_DIR || path.join(__dirname, "..", "app"));
 const MAX_CORPO = 64 * 1024;
-// Un aggiornamento a mano dalla wiki al massimo ogni 10 minuti
+// Un aggiornamento a mano dalla wiki al massimo ogni 10 minuti, degli ordini ogni 2
 const PAUSA_AGGIORNAMENTO = 10 * 60 * 1000;
+const PAUSA_ORDINI = 2 * 60 * 1000;
 
 const TIPI = {
   ".html": "text/html; charset=utf-8",
@@ -41,6 +43,9 @@ fs.mkdirSync(CARTELLA_DATI, { recursive: true });
 const archivio = new Archivio(CARTELLA_DATI);
 const catalogo = new Aggiornatore({ cartellaDati: CARTELLA_DATI, cartellaApp: CARTELLA_APP });
 if (process.env.AGGIORNA_WIKI !== "0") catalogo.pianifica();
+// Major Order e Personal Order dall'API del gioco, ogni mezz'ora
+const ordini = new Ordini({ cartellaDati: CARTELLA_DATI });
+if (process.env.AGGIORNA_ORDINI !== "0") ordini.pianifica();
 
 function rispondi(res, stato, corpo, extra = {}) {
   const testo = typeof corpo === "string" ? corpo : JSON.stringify(corpo);
@@ -138,6 +143,17 @@ async function api(req, res, url) {
   if (metodo === "GET" && parti[0] === "catalogo") return inviaCatalogo(req, res);
   if (metodo === "GET" && parti[0] === "novita") return rispondi(res, 200, catalogo.novita());
   if (metodo === "GET" && parti[0] === "wiki" && parti.length === 3) return inviaVoceWiki(req, res, parti[1], parti[2]);
+
+  if (parti[0] === "ordini" && parti.length === 1) {
+    if (metodo === "GET") return rispondi(res, 200, ordini.dati());
+    if (metodo === "POST") {
+      const d = ordini.dati();
+      const ultimo = Date.parse(d.ultimoTentativo || 0) || 0;
+      if (!d.inCorso && Date.now() - ultimo < PAUSA_ORDINI) return errore(res, 429, "Ordini appena aggiornati: riprova tra un paio di minuti");
+      ordini.aggiorna(`a mano da ${chi.nome}`);
+      return rispondi(res, 202, ordini.dati());
+    }
+  }
 
   if (parti[0] === "aggiornamento" && parti.length === 1) {
     if (metodo === "GET") return rispondi(res, 200, catalogo.stato());
@@ -242,10 +258,11 @@ server.listen(PORTA, () => console.log(`Infernotuffatori in ascolto sulla porta 
 // Allo spegnimento del container finisce le scritture in corso
 function chiudi() {
   catalogo.ferma();
+  ordini.ferma();
   server.close();
   archivio.coda.finally(() => process.exit(0));
 }
 process.on("SIGTERM", chiudi);
 process.on("SIGINT", chiudi);
 
-module.exports = { server };
+module.exports = { server, ordini };
