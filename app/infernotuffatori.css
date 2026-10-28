@@ -174,6 +174,29 @@ label.campo > span { display: block; font-size: 0.72rem; color: var(--tenue); te
 .slot .etichetta { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--tenue); font-weight: 800; }
 .slot .valore { font-weight: 700; }
 .slot .togli { margin-left: auto; border: 0; background: transparent; color: var(--tenue); font-size: 1.2rem; cursor: pointer; padding: 6px 8px; }
+/* Consigli: i cambi che alzano il punteggio */
+details.consigli { margin-top: 14px; border-color: #4a3f00; }
+details.consigli > summary { cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+details.consigli > summary::-webkit-details-marker { display: none; }
+details.consigli > summary::before { content: "▸"; color: var(--giallo); }
+details.consigli[open] > summary { margin-bottom: 8px; }
+details.consigli[open] > summary::before { content: "▾"; }
+details.consigli > summary .titolo { flex: 1; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.8rem; color: var(--giallo); }
+details.consigli > p { margin: 8px 0; }
+.guadagno { color: var(--verde); font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.consigli-elenco { display: grid; gap: 6px; margin: 10px 0 4px; }
+.consiglio { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: var(--raggio); background: var(--pannello2); border: 1px solid var(--bordo); }
+.consiglio .icona { width: 40px; height: 40px; }
+.consiglio .testo { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.consiglio .etichetta { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--tenue); font-weight: 800; }
+.consiglio .pulsante { min-height: 34px; padding: 6px 10px; }
+/* Nella scelta di un oggetto: quanto cambia la potenza totale della build */
+.scelta { position: relative; }
+.delta { position: absolute; top: 6px; right: 6px; z-index: 1; padding: 1px 7px; border-radius: 999px; font-size: 0.72rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.delta.su { background: #0d2a17; color: var(--verde); border: 1px solid #1d5a33; }
+.delta.giu { background: #1f1212; color: #f19a9a; border: 1px solid #4a2323; }
+.delta.pari { background: #1c1c1c; color: var(--tenue); border: 1px solid var(--bordo); }
+.scelta .descr.attenzione { color: #f5b942; }
 .barra-salva {
   position: sticky; bottom: 0; z-index: 15; margin: 18px -16px 0; padding: 10px 16px calc(10px + var(--barra-sotto));
   background: rgba(10, 10, 10, 0.95); border-top: 1px solid var(--bordo); display: flex; gap: 8px; justify-content: flex-end;
