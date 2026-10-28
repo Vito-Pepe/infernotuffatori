@@ -41,7 +41,7 @@ Build di **Helldivers 2** condivise tra amici, sul Raspberry Pi, e una **Wiki** 
   - i Helldiver in gioco e gli ultimi dispacci.
 - **Come calcoliamo**: spiegazione del modello, con fonti e crediti.
 - **Wiki**: tutto sul gioco, con una ricerca su ogni cosa.
-  - **Nemici**: anatomia completa (salute, corazza, durevolezza, danno al corpo, resistenza alle esplosioni e parti fatali), attacchi con danno e perforazione, dove compaiono, comportamento, consigli tattici, varianti, curiosità e modifiche nelle patch. In più le armi, le granate e gli stratagemmi migliori contro ognuno, secondo il nostro modello.
+  - **Nemici**: anatomia completa (salute, corazza, durevolezza, danno al corpo, resistenza alle esplosioni e parti fatali), attacchi con danno e perforazione, dove compaiono, comportamento, consigli tattici, varianti, curiosità e modifiche nelle patch. In più le armi, le granate e gli stratagemmi migliori contro ognuno, secondo il nostro modello. Ci sono anche le sotto-fazioni (Cyborg Legion, Jet Brigade e Incineration Corps degli Automi, le varianti Strain dei Terminidi, Vote Snatchers e Appropriators degli Illuminati), con un filtro per vederle da sole o solo i nemici di sempre.
   - **Armi, granate e stratagemmi**: scheda (con i valori di base e, per gli stratagemmi, quelli con i moduli della nave), grado vero di perforazione (anche quelli che il gioco non mostra), gli attacchi con i dati del gioco, come vanno contro ogni nemico, le strutture che distrugge, come si ottengono, consigli, moduli della nave e patch. In fondo **tutti i dati del gioco**, come nella sezione "Detailed Weapon Statistics" della wiki: una scheda per l'arma e una per ogni attacco (proiettile con calibro, massa, velocità, resistenza dell'aria e gravità; esplosione con i raggi e le schegge; raggio, arco, getto, effetti), con danno normale e durevole, perforazione per angolo e forze.
   - **Armature**: tutte le 113 per il corpo, con protezione (base + passiva), danno che si subisce su testa, petto, braccia e gambe, salute effettiva, velocità, stamina e passiva. Ci sono anche gli elmi e i mantelli, che sono estetici, con le immagini.
   - **Passive e potenziamenti**, con l'effetto preciso e le armature che hanno ogni passiva.
@@ -80,7 +80,7 @@ I testi delle pagine (consigli, comportamento, patch...) restano in inglese, com
 
 Tutto è in `app/comune/metriche.js`, con le costanti commentate; la spiegazione completa è nella pagina **Come calcoliamo**.
 
-- **Potenza di fuoco**: per ogni oggetto e ogni nemico della fazione si contano i colpi che servono per abbatterlo, sulla parte più conveniente.
+- **Potenza di fuoco**: per ogni oggetto e ogni nemico della fazione si contano i colpi che servono per abbatterlo, sulla parte più conveniente. Contano i nemici di sempre: le sotto-fazioni compaiono solo in alcune missioni, e nella Wiki stanno in fondo alla tabella "Contro i nemici".
   - Perforazione e corazza: danno pieno se la perforazione supera la corazza, 65% se è uguale, niente se è minore.
   - Contano anche danno durevole, esplosioni, fuoco e gas.
   - Le parti difficili da colpire contano come più colpi.

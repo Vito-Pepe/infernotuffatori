@@ -13,7 +13,7 @@ const SORGENTI = new WeakMap();
 // 2: nemici con descrizione e immagine, armature, elmi, mantelli, meccaniche e testi della wiki
 // 3: fonti della demolizione, strutture di Super Terra, immagini di elmi e mantelli (e quelle
 //    delle armature cambiate: il catalogo del volume di prima non vale più)
-const VERSIONE = 3;
+const VERSIONE = 4;
 
 // Stratagemmi degli eventi (fuochi d'artificio, sorvoli): non servono in battaglia
 const ESCLUSI = new Set(["Eagle Fly By", "Orbital Confetti"]);
@@ -562,23 +562,32 @@ function classeNemico(av, salute) {
   return "leggero";
 }
 
+// La fazione scritta nella scheda è quella della categoria (anche al singolare, "Automaton")
+// oppure una sua sotto-fazione: Cyborg Legion, Jet Brigade, Predator Strain, Vote Snatchers...
+// Le schede con un'altra delle tre fazioni no: quei nemici stanno nella loro categoria.
 function nemico(pagina, fazione) {
   const ib = W.trova(pagina.testo, ["Infobox Enemy"]);
   if (!ib) return null;
   const p = ib.nominati;
-  if (W.pulisci(p.faction) !== FAZIONI[fazione] || NEMICI_ESCLUSI.has(pagina.titolo)) return null;
+  const scritta = W.pulisci(p.faction);
+  const base = (f) => f.toLowerCase().replace(/s$/, "");
+  const principale = Boolean(scritta) && base(scritta) === base(FAZIONI[fazione]);
+  const altra = !principale && Object.values(FAZIONI).some((f) => base(f) === base(scritta || ""));
+  if (!scritta || altra || NEMICI_ESCLUSI.has(pagina.titolo)) return null;
   const tabella = W.templates(pagina.testo).find((t) => t.nome === "anatomy table");
   const parti = tabella ? W.interni(tabella.corpo, "Anatomy Row").map(parte) : [];
   const main = parti.find((x) => /main/i.test(x.nome) && typeof x.salute === "number");
+  // Qualche scheda non ha la taglia (gli Appropriators): serve solo a ordinare
   const taglia = W.numero(p.size);
   const salute = main?.salute ?? W.numero(p.health);
-  if (taglia == null || !salute || !main) return null;
+  if (!salute || !main) return null;
   const id = slug(pagina.titolo);
   const immagine = W.pulisci(p.image) || null;
   return {
     id,
     nome: pagina.titolo,
     fazione,
+    ...(principale ? {} : { sottofazione: scritta }),
     taglia,
     classe: classeNemico(main.av, salute),
     salute,
@@ -762,7 +771,7 @@ function costruisci(grezzo) {
 
   const versioni = [dati.armi?.wep_version, dati.stratagemmi?.strat_version].filter(Boolean);
   oggetti.sort((a, b) => a.slot.localeCompare(b.slot) || a.nome.localeCompare(b.nome));
-  nemici.sort((a, b) => a.fazione.localeCompare(b.fazione) || a.taglia - b.taglia || a.nome.localeCompare(b.nome));
+  nemici.sort((a, b) => a.fazione.localeCompare(b.fazione) || (a.taglia ?? 0) - (b.taglia ?? 0) || a.nome.localeCompare(b.nome));
   const collega = indice({ oggetti, nemici, armature, senzaSigla });
   const wiki = enciclopedia({ pagine, oggetti, nemici, armature, senzaSigla, collega });
   // Tutti i numeri degli attacchi, come nella sezione "Detailed Weapon Statistics" della wiki
@@ -821,8 +830,9 @@ function controlla(nuovo, vecchio) {
   }
   const conColpi = (nuovo.oggetti || []).filter((o) => o.combattimento?.colpi?.length).length;
   if (conColpi < 100) problemi.push(`statistiche di combattimento solo per ${conColpi} oggetti`);
+  // Contano i nemici di sempre, quelli dei punteggi: le sotto-fazioni non bastano
   for (const f of Object.keys(FAZIONI)) {
-    if ((nuovo.nemici || []).filter((x) => x.fazione === f).length < 5) problemi.push(`pochi nemici per ${f}`);
+    if ((nuovo.nemici || []).filter((x) => x.fazione === f && !x.sottofazione).length < 5) problemi.push(`pochi nemici per ${f}`);
   }
   if ((nuovo.strutture || []).length < 10) problemi.push("tabella delle strutture non letta");
   // Armature: se mancano del tutto l'aggiornatore tiene quelle di prima; se sono poche,

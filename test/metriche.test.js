@@ -96,3 +96,14 @@ test("gittata: fucile di precisione meglio da lontano, fucile a pompa da vicino"
   assert.ok(precisione.lunga > pompa.lunga);
   assert.ok(pompa.corta >= precisione.corta);
 });
+
+test("punteggi: contano i nemici di sempre, le sotto-fazioni sono solo nella Wiki", () => {
+  for (const fazione of ["terminidi", "automi", "illuminati"]) {
+    const usati = M.nemiciDi(catalogo, fazione);
+    assert.ok(usati.length >= 5, fazione);
+    assert.ok(usati.every((n) => !n.sottofazione));
+  }
+  const cyborg = catalogo.nemici.filter((n) => n.sottofazione === "Cyborg Legion");
+  assert.ok(cyborg.length >= 3, "la Cyborg Legion è nel catalogo");
+  assert.ok(cyborg.every((n) => n.fazione === "automi" && n.parti.length));
+});
