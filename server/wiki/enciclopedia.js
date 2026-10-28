@@ -98,8 +98,46 @@ function compatta(voce) {
   return Object.fromEntries(Object.entries(voce).filter(([, v]) => v != null && !(Array.isArray(v) && !v.length)));
 }
 
-function enciclopedia({ pagine, oggetti, nemici, armature, senzaSigla }) {
-  const collega = indice({ oggetti, nemici, armature, senzaSigla });
+// Tabelle "Demolition Force Sources" della pagina Demolition: per ogni fonte (oggetto del
+// catalogo, o altro come la Hellbomb di missione) gli attacchi con almeno 20 di forza di
+// demolizione e se sono esplosioni. "Destruct/Destruction Explosion" vuol dire che succede
+// solo quando l'oggetto esplode o viene distrutto: si segna come caso particolare.
+function fontiDemolizione(testo, collega, oggetti = []) {
+  const t = String(testo || "");
+  const da = t.search(/Demolition Force Sources/i);
+  if (da < 0) return [];
+  const a = t.search(/Demolition Force vs\.? Structures/i);
+  const out = [];
+  for (const b of T.blocchi(t.slice(da, a > da ? a : undefined), { collega })) {
+    if (b.t !== "tab") continue;
+    let ultima = null;
+    for (const r of b.righe) {
+      const testi = r.map((c) => T.testoPezzi(c).trim());
+      if (/^weapon$/i.test(testi[0])) continue;
+      let fonte;
+      let resto;
+      // La prima riga di un gruppo ha la fonte; le altre (rowspan) solo attacco, forza, esplosiva
+      if (testi.length >= 4) [fonte, resto] = [r[0], testi.slice(1, 4)];
+      else if (testi.length === 3 && ultima) [fonte, resto] = [ultima, testi];
+      else continue;
+      ultima = fonte;
+      const forza = Number(resto[1]);
+      if (!Number.isFinite(forza)) continue;
+      const riga = { attacco: resto[0] || null, forza, esplosiva: /^yes/i.test(resto[2]), situazionale: /destruct/i.test(resto[0] || "") };
+      const nome = T.testoPezzi(fonte).trim();
+      if (/^all\s+exosuits?$/i.test(nome)) {
+        for (const o of oggetti.filter((x) => /^EXO-/i.test(x.nome))) out.push({ id: o.id, nome: o.nome, ...riga });
+        continue;
+      }
+      const link = fonte.find((p) => typeof p === "object" && p.v === "oggetto");
+      out.push({ id: link ? link.id : null, nome, ...riga });
+    }
+  }
+  return out;
+}
+
+function enciclopedia({ pagine, oggetti, nemici, armature, senzaSigla, collega: dato }) {
+  const collega = dato || indice({ oggetti, nemici, armature, senzaSigla });
   const wiki = { oggetti: {}, nemici: {}, armature: {}, pagine: {} };
 
   for (const o of oggetti) {
@@ -146,4 +184,4 @@ function enciclopedia({ pagine, oggetti, nemici, armature, senzaSigla }) {
   return wiki;
 }
 
-module.exports = { enciclopedia, parteAnatomia, anatomia, PAGINE_MECCANICHE };
+module.exports = { enciclopedia, indice, fontiDemolizione, parteAnatomia, anatomia, PAGINE_MECCANICHE };

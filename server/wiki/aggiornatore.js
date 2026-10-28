@@ -8,7 +8,7 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 const { scaricaTutto } = require("./sorgenti");
 const { costruisci, controlla, VERSIONE } = require("./catalogo");
-const { prepara } = require("./icone");
+const { prepara, togliNonUsate } = require("./icone");
 const { confronta } = require("./differenze");
 
 const ORE = 3600 * 1000;
@@ -44,6 +44,10 @@ function riporta(nuovo, vecchio) {
     Object.assign(nuovo, { armature: vecchio.armature, elmi: vecchio.elmi || [], mantelli: vecchio.mantelli || [] });
     nuovo.wiki = { ...nuovo.wiki, armature: vecchio.wiki?.armature || {} };
     avvisi.push("armature non lette dalla wiki: restano quelle di prima");
+  }
+  if (!nuovo.demolizioni?.length && vecchio.demolizioni?.length) {
+    nuovo.demolizioni = vecchio.demolizioni;
+    avvisi.push("fonti della demolizione non lette dalla wiki: restano quelle di prima");
   }
   if (!nuovo.meccaniche?.armatura?.letti && vecchio.meccaniche?.armatura?.letti) {
     nuovo.meccaniche = { ...nuovo.meccaniche, armatura: vecchio.meccaniche.armatura };
@@ -161,6 +165,9 @@ class Aggiornatore {
         scriviAtomico(this.fileNovita, JSON.stringify(elenco.slice(0, MAX_NOVITA)));
       }
       this.usa(nuovo);
+      // Solo dopo che il catalogo nuovo è in uso: le immagini scaricate che non usa più
+      const tolte = togliNonUsate(this.cartellaIcone, nuovo);
+      if (tolte) this.log(`catalogo: tolte ${tolte} immagini non più usate`);
       Object.assign(stato, { ultimoSuccesso: new Date().toISOString(), esito: "ok", errore: null, avvisi: nuovo.avvisi || [], cambiamenti: diff.totale });
       this.log(`catalogo: fatto, ${nuovo.oggetti.length} oggetti, ${stato.cambiamenti} cambiamenti`);
     } catch (e) {

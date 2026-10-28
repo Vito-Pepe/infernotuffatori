@@ -23,22 +23,34 @@
     ["attesa", "Attesa", "s"],
     ["usi", "Usi"],
     ["riarmo", "Riarmo", "s"],
+    ["munizioniTorretta", "Munizioni della torretta"],
+    ["saluteTorretta", "Salute della torretta"],
+    ["rotazioneTorretta", "Rotazione della torretta", "°/s"],
   ];
 
   function urlWiki(o) {
     return `https://helldivers.wiki.gg/wiki/${encodeURIComponent(o.pagina.replace(/ /g, "_")).replace(/%2F/g, "/")}`;
   }
 
+  // Valori di base; per gli stratagemmi anche quelli con i moduli della nave (dalla wiki)
   function scheda(o) {
     const righe = [];
     const sc = o.scheda || {};
+    const mo = o.moduli || {};
+    const testo = (v, unita) => (typeof v === "number" ? `${numero(v, 2)}${unita ? ` ${unita}` : ""}` : String(v));
     for (const [k, nome, unita] of CAMPI) {
       const v = sc[k];
       if (v == null || v === "") continue;
-      righe.push(h("dt", null, nome), h("dd", null, typeof v === "number" ? `${numero(v, 2)}${unita ? ` ${unita}` : ""}` : String(v)));
+      const conModuli = mo[k] != null && mo[k] !== v ? h("span", { class: "con-moduli" }, ` → ${testo(mo[k], unita)} con i moduli`) : null;
+      const presto = k === "riarmo" && mo.riarmoPresto != null ? h("span", { class: "con-moduli" }, ` (${testo(mo.riarmoPresto, unita)} se lo chiami con usi rimasti)`) : null;
+      righe.push(h("dt", null, nome), h("dd", null, testo(v, unita), conModuli, presto));
     }
     if (o.slot === "stratagemma" && o.scheda && o.scheda.usi == null && o.tipo !== "arma") righe.push(h("dt", null, "Usi"), h("dd", null, "illimitati"));
-    return righe.length ? h("dl", { class: "scheda" }, righe) : null;
+    if (!righe.length) return null;
+    const moduli = mo.moduli?.length
+      ? h("div", { class: "piccolo tenue moduli-nave" }, "Con i moduli della nave: ", mo.moduli.map((m, i) => [i ? ", " : "", h("span", { title: m.effetto }, m.nome), ` (${m.effetto})`]), ".")
+      : null;
+    return [h("dl", { class: "scheda" }, righe), moduli];
   }
 
   // Un oggetto con nome, tipo, descrizione e scheda (aperta a richiesta)

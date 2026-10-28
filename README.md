@@ -19,7 +19,7 @@ Build di **Helldivers 2** condivise tra amici, sul Raspberry Pi, e una **Wiki** 
 
   Gli oggetti si scelgono da una finestra con ricerca, categorie e ordinamento per efficacia contro leggeri, medi o pesanti. Le metriche si aggiornano a ogni scelta. Una build lasciata a metà su un dispositivo riparte da lì.
 - **Pagina della build**:
-  - ogni oggetto con descrizione, tratti, codice dello stratagemma e scheda (danno, perforazione, caricatore, ricarica, cadenza, chiamata, attesa, usi) e un link alla wiki;
+  - ogni oggetto con descrizione, tratti, codice dello stratagemma e scheda (danno, perforazione, caricatore, ricarica, cadenza, chiamata, attesa, usi; per gli stratagemmi anche i valori con i moduli della nave) e un link alla wiki;
   - **Modifica** ed **Elimina** solo per chi l'ha creata (e per gli amministratori), **Duplica** per tutti, **Copia link**.
 - **Analisi**:
   - prestazioni (leggeri, medi, pesanti, sopravvivenza, utilità, controllo, obiettivi);
@@ -33,9 +33,10 @@ Build di **Helldivers 2** condivise tra amici, sul Raspberry Pi, e una **Wiki** 
 - **Come calcoliamo**: spiegazione del modello, con fonti e crediti.
 - **Wiki**: tutto sul gioco, con una ricerca su ogni cosa.
   - **Nemici**: anatomia completa (salute, corazza, durevolezza, danno al corpo, resistenza alle esplosioni e parti fatali), attacchi con danno e perforazione, dove compaiono, comportamento, consigli tattici, varianti, curiosità e modifiche nelle patch. In più le armi, le granate e gli stratagemmi migliori contro ognuno, secondo il nostro modello.
-  - **Armi, granate e stratagemmi**: scheda, grado vero di perforazione (anche quelli che il gioco non mostra), tutti gli attacchi con i dati del gioco, come vanno contro ogni nemico, come si ottengono, consigli, moduli della nave e patch.
-  - **Armature**: tutte le 113 per il corpo, con protezione (base + passiva), danno che si subisce su testa, petto, braccia e gambe, salute effettiva, velocità, stamina e passiva. Ci sono anche gli elmi e i mantelli, che sono estetici.
-  - **Passive e potenziamenti**, con l'effetto preciso e le armature che hanno ogni passiva. **Strutture**, con la forza di demolizione e gli oggetti che bastano.
+  - **Armi, granate e stratagemmi**: scheda (con i valori di base e, per gli stratagemmi, quelli con i moduli della nave), grado vero di perforazione (anche quelli che il gioco non mostra), gli attacchi con i dati del gioco, come vanno contro ogni nemico, le strutture che distrugge, come si ottengono, consigli, moduli della nave e patch. In fondo **tutti i dati del gioco**, come nella sezione "Detailed Weapon Statistics" della wiki: una scheda per l'arma e una per ogni attacco (proiettile con calibro, massa, velocità, resistenza dell'aria e gravità; esplosione con i raggi e le schegge; raggio, arco, getto, effetti), con danno normale e durevole, perforazione per angolo e forze.
+  - **Armature**: tutte le 113 per il corpo, con protezione (base + passiva), danno che si subisce su testa, petto, braccia e gambe, salute effettiva, velocità, stamina e passiva. Ci sono anche gli elmi e i mantelli, che sono estetici, con le immagini.
+  - **Passive e potenziamenti**, con l'effetto preciso e le armature che hanno ogni passiva.
+  - **Strutture**: per ognuna la forza di demolizione, se serve un'esplosione e tutte le armi e gli stratagemmi che la distruggono, divisi per tipo, con la loro forza (anche le cose della missione, come la Hellbomb o un Hellpod). Ci sono anche le strutture di Super Terra.
   - **Meccaniche del gioco**, in italiano: gradi di perforazione e corazza, danno durevole, esplosioni, parti dei nemici, danno nel tempo ed effetti, stordimento e ragdoll, tipi di danno, distanza, demolizione, armatura degli Helldiver e difficoltà. Le tabelle sono fatte con i dati, e ci sono anche le pagine originali della wiki (in inglese).
 
 ## Il catalogo e l'aggiornamento automatico
@@ -44,7 +45,7 @@ Il catalogo viene dalla [Helldivers Wiki](https://helldivers.wiki.gg) (licenza C
 - **oggetti**: le pagine di armi, granate, stratagemmi, passive e potenziamenti;
 - **numeri**: i dati estratti dal gioco che la wiki pubblica (danni, perforazione, esplosioni, munizioni, tempi);
 - **nemici**: le schede con salute e corazza di ogni parte, gli attacchi e i testi delle pagine;
-- **strutture**: la tabella della forza di demolizione;
+- **strutture**: le tabelle della pagina Demolition (la forza che serve a ogni struttura e le fonti di forza di demolizione, che si aggiungono ai dati del gioco);
 - **armature, elmi, mantelli e passive**: le tabelle Cargo della wiki;
 - **meccaniche**: le pagine Damage, Status Effects, Armor, Difficulty e Demolition, e i numeri del template "Armor Ratings" (quanto para l'armatura su ogni parte del corpo).
 
@@ -60,7 +61,9 @@ I testi delle pagine (consigli, comportamento, patch...) restano in inglese, com
 **Catalogo di riserva**: dentro l'immagine c'è un catalogo di riserva (`app/dati/catalogo.json` e `app/icone/`), così l'app funziona anche senza rete. Si rigenera con `npm run catalogo` quando si prepara una versione nuova dell'app.
 
 **Icone**:
-- **Armi, nemici e armature** usano le immagini della wiki, in miniatura. Si saltano quelle la cui licenza vieta l'uso in contenuti ad accesso riservato.
+- **Armi, nemici, armature, elmi e mantelli** usano le immagini della wiki, in miniatura. Per armature, elmi e mantelli si preferiscono quelle ufficiali del gioco caricate sulla wiki: il set completo nell'armeria (per gli elmi senza un'immagine a sé l'app ingrandisce la testa) e le icone dell'armeria.
+- Si saltano le immagini con condizioni in più della licenza: quelle concesse solo per contenuti pubblici (l'app è privata) e quelle con il modello `{{FileAuthor}}`, dove l'autore chiede di usarle solo sulla wiki e di chiedergli il permesso. Sono quasi tutti i disegni di armature, elmi e mantelli: per questo molti mantelli non hanno l'immagine. Se un autore ci dà il permesso, il suo nome va in `AUTORI_CON_PERMESSO` (`server/wiki/icone.js`).
+- La licenza si ricontrolla a ogni aggiornamento anche per le immagini già scaricate; dopo un aggiornamento riuscito quelle che il catalogo non usa più si tolgono dal volume.
 - Gli **stratagemmi** usano la raccolta [nvigneux/Helldivers-2-Stratagems-icons-svg](https://github.com/nvigneux/Helldivers-2-Stratagems-icons-svg) ("Feel free to use them in your own projects"). Gli SVG vengono ripuliti prima di salvarli.
 - **Passive, potenziamenti e fazioni** hanno emblemi disegnati per l'app.
 
@@ -152,7 +155,7 @@ npm run catalogo -- /tmp/grezzo.json                           # catalogo di ris
 
 ## Crediti
 
-- **Dati, testi, statistiche e immagini di armi, nemici e armature**: Helldivers Wiki (wiki.gg) e gli utenti che li hanno scritti e caricati, CC BY-NC-SA 4.0. Il catalogo `app/dati/catalogo.json` e le immagini `app/icone/*.png` ne derivano e restano sotto la stessa licenza; ogni pagina della Wiki dell'app porta il link alla pagina originale.
+- **Dati, testi, statistiche e immagini di armi, nemici, armature, elmi e mantelli**: Helldivers Wiki (wiki.gg) e gli utenti che li hanno scritti e caricati, CC BY-NC-SA 4.0 (le immagini ufficiali del gioco sono di Arrowhead Game Studios). Il catalogo `app/dati/catalogo.json` e le immagini `app/icone/*.png` ne derivano e restano sotto la stessa licenza; ogni pagina della Wiki dell'app porta il link alla pagina originale.
 - **Icone degli stratagemmi** (`app/icone/*.svg`): nvigneux/Helldivers-2-Stratagems-icons-svg.
 - Helldivers è un marchio di Sony Interactive Entertainment; il gioco è di Arrowhead Game Studios. App di appassionati, privata e senza scopo di lucro.
 
