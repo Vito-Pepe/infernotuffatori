@@ -1,4 +1,4 @@
-// Ordini in corso (Major Order e Personal Order), aggiornati dal server ogni mezz'ora
+// Major Order in corso, aggiornati dal server ogni mezz'ora
 // (ORDINI_OGNI_MINUTI). Si tengono l'ultimo stato buono di ogni parte, se un giorno una
 // fonte non risponde, e lo storico dell'avanzamento: serve a stimare il ritmo e se si
 // finisce prima della scadenza. Tutto in ordini/ nel volume dei dati.
@@ -85,16 +85,10 @@ class Ordini {
     } else errori.pianeti = motivoDi(r.stato);
     const ctx = { ora, stato: this.statoPrima, info: this.fisse.info, pianeti: this.fisse.pianeti, oggetti: this.fisse.oggetti };
     if (r.maggiori.status === "fulfilled" && Array.isArray(r.maggiori.value)) {
-      nuovo.maggiori = leggiOrdini(r.maggiori.value, "maggiore", ctx);
+      nuovo.maggiori = leggiOrdini(r.maggiori.value, ctx);
       nuovo.maggioriAggiornati = quando;
       this.registra(nuovo.maggiori, ora);
     } else errori.maggiori = motivoDi(r.maggiori);
-    if (r.personale.status === "fulfilled" && r.personale.value) {
-      const v = r.personale.value;
-      nuovo.personali = leggiOrdini(Array.isArray(v) ? v : [v], "personale", ctx);
-      nuovo.personaliAggiornati = quando;
-      this.registra(nuovo.personali, ora);
-    } else errori.personale = motivoDi(r.personale);
     if (r.dispacci.status === "fulfilled") nuovo.dispacci = leggiDispacci(r.dispacci.value, ctx);
     else errori.dispacci = motivoDi(r.dispacci);
     if (nuovo.maggioriAggiornati === quando) nuovo.ultimoSuccesso = quando;
@@ -113,7 +107,7 @@ class Ordini {
   // Avanzamento di ogni compito, per il ritmo: [fatto, percento] a ogni aggiornamento
   registra(ordini, ora) {
     for (const o of ordini) {
-      const chiave = `${o.genere}:${o.id}`;
+      const chiave = o.id;
       const l = (this.storico[chiave] || []).filter((x) => ora - x.t < STORICO);
       l.push({ t: ora, v: o.compiti.map((c) => [c.fatto, c.percento ?? null]) });
       this.storico[chiave] = l.slice(-1000);
@@ -124,7 +118,7 @@ class Ordini {
 
   // Ritmo di un compito nelle ultime ore e, al ritmo attuale, quando finisce
   ritmo(o, i, c) {
-    const l = this.storico[`${o.genere}:${o.id}`] || [];
+    const l = this.storico[o.id] || [];
     if (l.length < 2) return null;
     const ultimo = l[l.length - 1];
     const primo = l.find((x) => ultimo.t - x.t <= FINESTRA);
@@ -156,18 +150,16 @@ class Ordini {
     return {
       guerra: u.guerra || null,
       maggiori: conRitmo(u.maggiori),
-      personali: conRitmo(u.personali),
       dispacci: u.dispacci || [],
       giocatori: u.giocatori ?? null,
       maggioriAggiornati: u.maggioriAggiornati || null,
-      personaliAggiornati: u.personaliAggiornati || null,
       ultimoTentativo: u.ultimoTentativo || null,
       ultimoSuccesso: u.ultimoSuccesso || null,
       errori: u.errori || {},
       inCorso: Boolean(this.inCorso),
       ogniMinuti: OGNI / MINUTO,
       prossimo,
-      fonti: { gioco: fontiPredefinite.API, personale: fontiPredefinite.PERSONALE },
+      fonti: { gioco: fontiPredefinite.API },
     };
   }
 

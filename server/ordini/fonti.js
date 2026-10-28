@@ -1,13 +1,11 @@
 // Da dove vengono gli ordini (solo lettura, nessun accesso con un account):
 // - l'API del gioco di Arrowhead, la stessa che usa il gioco e che usano i siti della
 //   community: guerra in corso, Major Order, stato dei pianeti, dispacci (testi in italiano);
-// - il Personal Order: il gioco lo dà solo a chi è collegato con il suo account, quindi lo
-//   prendiamo da DiveHarder, un servizio della community che lo ripubblica;
 // - nomi di pianeti e oggetti dalla raccolta della community su GitHub (helldivers-2/json).
+// Il Personal Order non c'è: il gioco lo dà solo a chi è collegato con il suo account.
 const { AGENTE } = require("../wiki/rete");
 
 const API = process.env.GUERRA_API_URL || "https://api.live.prod.thehelldiversgame.com";
-const PERSONALE = process.env.ORDINE_PERSONALE_URL || "https://api.diveharder.com/raw/personal_order";
 const RACCOLTA = process.env.GUERRA_JSON_URL || "https://raw.githubusercontent.com/helldivers-2/json/master";
 const RIPROVA_MS = Number(process.env.ORDINI_RIPROVA_MS ?? 3000);
 const TIMEOUT_MS = 20000;
@@ -51,14 +49,12 @@ async function statiche() {
 
 // Cose che cambiano di continuo. Ognuna può mancare senza fermare le altre.
 async function correnti(guerra) {
-  const [maggiori, stato, dispacci, personale] = await Promise.allSettled([
+  const [maggiori, stato, dispacci] = await Promise.allSettled([
     chiedi(`${API}/api/v2/Assignment/War/${guerra}`),
     chiedi(`${API}/api/WarSeason/${guerra}/Status`),
     chiedi(`${API}/api/NewsFeed/${guerra}?maxEntries=1024`),
-    // DiveHarder chiede alle app di presentarsi
-    chiedi(PERSONALE, { intestazioni: { "X-Super-Client": "infernotuffatori", "X-Super-Contact": "https://github.com/Vito-Pepe/infernotuffatori" } }),
   ]);
-  return { maggiori, stato, dispacci, personale };
+  return { maggiori, stato, dispacci };
 }
 
-module.exports = { statiche, correnti, chiedi, API, PERSONALE, RACCOLTA };
+module.exports = { statiche, correnti, chiedi, API, RACCOLTA };

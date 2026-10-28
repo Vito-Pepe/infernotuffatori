@@ -1,6 +1,5 @@
-// Ordini della guerra galattica: il Major Order (anche più d'uno) e il Personal Order del
-// giorno, con l'avanzamento di ogni obiettivo, i pianeti coinvolti, la ricompensa e la
-// scadenza. Funzioni pure: qui niente rete (vedi fonti.js), solo dai dati del gioco al
+// Ordini della guerra galattica: il Major Order (anche più d'uno), con l'avanzamento di
+// ogni obiettivo, i pianeti coinvolti, la ricompensa e la scadenza. Funzioni pure: qui niente rete (vedi fonti.js), solo dai dati del gioco al
 // formato dell'app.
 //
 // Il gioco non spiega i suoi numeri: tipi di obiettivo e di valore vengono dalla
@@ -170,9 +169,9 @@ function ricompense(setting) {
   return out;
 }
 
-// Elenco di ordini del gioco (Assignment) → ordini dell'app. `genere`: "maggiore" o "personale".
+// Elenco di ordini del gioco (Assignment) → ordini dell'app.
 // ctx: { ora (ms), stato (Status), info (WarInfo), pianeti, oggetti }
-function leggiOrdini(lista, genere, ctx) {
+function leggiOrdini(lista, ctx) {
   if (!Array.isArray(lista)) return [];
   return lista
     .filter((a) => a && a.setting)
@@ -183,8 +182,7 @@ function leggiOrdini(lista, genere, ctx) {
       const scadenza = numero(a.expiresIn) != null ? new Date(ctx.ora + numero(a.expiresIn) * 1000).toISOString() : null;
       return {
         id: String(a.id32 ?? ""),
-        genere,
-        titolo: pulisci(s.overrideTitle) || (genere === "personale" ? "Ordine personale" : "Ordine maggiore"),
+        titolo: pulisci(s.overrideTitle) || "Major Order",
         briefing: pulisci(s.overrideBrief) || null,
         descrizione: pulisci(s.taskDescription) || null,
         scadenza,

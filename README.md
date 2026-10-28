@@ -30,7 +30,7 @@ Build di **Helldivers 2** condivise tra amici, sul Raspberry Pi, e una **Wiki** 
   - peso di ogni oggetto e avvisi, per esempio due zaini, due armi di supporto, poco contro i pesanti.
 - **Importa da democracy-hub**: si incollano i link di condivisione, uno per riga, con il nome davanti se si vuole. Le build arrivano nell'elenco: lì le build salvate restano solo nel browser di chi le ha fatte, qui stanno sul Pi.
 - **Novità**: cosa è cambiato a ogni aggiornamento del catalogo, con i valori prima e dopo: oggetti nuovi, tolti o cambiati (e le build che li usano), nemici (salute, corazza, durevolezza e resistenza di ogni parte) e strutture (forza di demolizione). C'è anche il pulsante **Aggiorna adesso dalla wiki**.
-- **Ordini**: il **Major Order** in corso (anche più d'uno) e il **Personal Order** del giorno, aggiornati ogni mezz'ora:
+- **Ordini**: il **Major Order** in corso (anche più d'uno), aggiornato ogni mezz'ora:
   - titolo, racconto e obiettivo con i testi del gioco in italiano, scadenza con il conto alla rovescia, ricompensa;
   - ogni obiettivo in italiano (liberare, difendere o tenere un pianeta, eliminare nemici, missioni, operazioni…) con la percentuale e i numeri: fatto, traguardo e quanto manca;
   - per i pianeti: chi li tiene, quanto sono liberati, la difesa in corso e quanti Helldiver ci sono ora;
@@ -149,7 +149,7 @@ Non serve invitarlo nella tailnet: basta **condividergli solo il dispositivo del
 - **Scritture**: accettate solo in JSON, solo dalla pagina stessa e solo da utenti riconosciuti. Le build vengono controllate oggetto per oggetto.
 - **Collegamenti verso Internet**, fatti solo dal server e solo in lettura:
   - una volta al giorno: la wiki (`helldivers.wiki.gg`) e `raw.githubusercontent.com` (icone degli stratagemmi; nomi di pianeti e oggetti della raccolta `helldivers-2/json`);
-  - ogni mezz'ora, per gli ordini: l'API del gioco (`api.live.prod.thehelldiversgame.com`, la stessa che usano il gioco e i siti della community, senza account) e DiveHarder (`api.diveharder.com`) per il Personal Order, che il gioco dà solo a chi è collegato con il suo account.
+  - ogni mezz'ora, per il Major Order: l'API del gioco (`api.live.prod.thehelldiversgame.com`, la stessa che usano il gioco e i siti della community, senza account).
 
 ## Sviluppo
 

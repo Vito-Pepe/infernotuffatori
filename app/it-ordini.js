@@ -1,6 +1,6 @@
-// Ordini: il Major Order in corso (anche più d'uno) e il Personal Order del giorno, con
-// l'avanzamento di ogni obiettivo in percentuale e in numeri, quanto manca, il ritmo delle
-// ultime ore, la ricompensa e la scadenza. Il Pi li legge dall'API del gioco ogni mezz'ora;
+// Ordini: il Major Order in corso (anche più d'uno), con l'avanzamento di ogni obiettivo
+// in percentuale e in numeri, quanto manca, il ritmo delle ultime ore, la ricompensa e la
+// scadenza. Il Pi li legge dall'API del gioco ogni mezz'ora;
 // la pagina aperta richiede i dati al Pi ogni cinque minuti.
 (function () {
   "use strict";
@@ -85,8 +85,8 @@
     const fatti = o.compiti.filter((c) => c.completato).length;
     return h(
       "section",
-      { class: `pannello ordine ${o.genere}${o.completato ? " completato" : ""}` },
-      h("div", { class: "testa-ordine" }, h("span", { class: "etichetta" }, o.genere === "personale" ? "Personal Order" : "Major Order"), h("h2", null, o.titolo), scade ? h("span", { class: "scadenza" }, scade) : null),
+      { class: `pannello ordine${o.completato ? " completato" : ""}` },
+      h("div", { class: "testa-ordine" }, h("span", { class: "etichetta" }, "Major Order"), h("h2", null, o.titolo), scade ? h("span", { class: "scadenza" }, scade) : null),
       o.briefing ? h("p", { class: "briefing" }, o.briefing) : null,
       o.descrizione ? h("p", { class: "obiettivo-ordine" }, h("b", null, "Obiettivo: "), o.descrizione) : null,
       o.compiti.length > 1 ? h("div", { class: "tenue piccolo" }, `Obiettivi completati: ${fatti} su ${o.compiti.length}`) : null,
@@ -111,14 +111,6 @@
       erroreDi("guerra") || erroreDi("maggiori") ? h("div", { class: "pannello avviso-ordini" }, `L'API del gioco non ha risposto all'ultimo controllo (${erroreDi("guerra") || erroreDi("maggiori")}). `, d.maggioriAggiornati ? "Qui sotto i dati dell'ultimo controllo riuscito." : "Riprova tra poco.") : null,
       nessunMaggiore && !erroreDi("guerra") && !erroreDi("maggiori") && d.maggioriAggiornati ? h("div", { class: "pannello" }, "Nessun Major Order in corso: Super Terra sta preparando il prossimo.") : null,
       d.maggiori.map(schedaOrdine),
-      d.personali.length
-        ? d.personali.map(schedaOrdine)
-        : h(
-            "section",
-            { class: "pannello ordine personale vuoto-ordine" },
-            h("div", { class: "testa-ordine" }, h("span", { class: "etichetta" }, "Personal Order"), h("h2", null, "Ordine personale del giorno")),
-            h("p", { class: "tenue" }, erroreDi("personale") ? `Non disponibile: il gioco lo dà solo a chi è collegato con il suo account e il servizio della community che lo ripubblica (DiveHarder) non ha risposto (${erroreDi("personale")}).` : d.personaliAggiornati ? "Oggi non c'è un ordine personale." : "Non ancora letto."),
-          ),
       d.dispacci?.length
         ? h(
             "section",
@@ -130,7 +122,7 @@
       h(
         "p",
         { class: "tenue piccolo fonte-wiki" },
-        "Dati dall'API del gioco di Arrowhead (Major Order, pianeti, dispacci) e da DiveHarder per il Personal Order; nomi dei pianeti dalla raccolta della community helldivers-2/json. Il ritmo è una stima nostra sulle ultime ore. ",
+        "Dati dall'API del gioco di Arrowhead (Major Order, pianeti, dispacci); nomi dei pianeti dalla raccolta della community helldivers-2/json. Il ritmo è una stima nostra sulle ultime ore. ",
         h(
           "button",
           {

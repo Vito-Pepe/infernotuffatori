@@ -411,14 +411,12 @@ span.chip { cursor: help; }
 .con-moduli { color: #b9f2c8; }
 .moduli-nave { margin-top: 6px; }
 
-/* --- Ordini: Major Order e Personal Order --- */
+/* --- Ordini: Major Order --- */
 .ordine { margin-bottom: 14px; border-left: 3px solid var(--giallo); }
-.ordine.personale { border-left-color: #8a8a8a; }
 .ordine.completato { border-left-color: var(--verde); }
 .testa-ordine { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 8px; }
 .testa-ordine h2 { margin: 0; font-size: 1.05rem; letter-spacing: 0.05em; color: var(--testo); flex: 1 1 200px; }
 .testa-ordine .etichetta { font-size: 0.7rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; color: var(--inchiostro); background: var(--giallo); border-radius: 999px; padding: 1px 8px; }
-.ordine.personale .testa-ordine .etichetta { background: #8a8a8a; }
 .testa-ordine .scadenza { font-size: 0.78rem; color: var(--tenue); font-variant-numeric: tabular-nums; }
 .briefing { font-style: italic; color: #d0d0d0; white-space: pre-line; margin: 4px 0 8px; }
 .obiettivo-ordine { margin: 0 0 8px; white-space: pre-line; }

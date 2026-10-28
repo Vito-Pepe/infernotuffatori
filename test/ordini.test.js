@@ -55,7 +55,6 @@ test("ordini: compiti di ogni tipo in italiano, con fatto, obiettivo e quanto ma
         ],
       ),
     ],
-    "maggiore",
     ctx,
   );
   assert.equal(o.titolo, "ORDINE PRIORITARIO");
@@ -83,7 +82,7 @@ test("ordini: compiti di ogni tipo in italiano, con fatto, obiettivo e quanto ma
 });
 
 test("ordini: pianeta già liberato, dispacci, giocatori, testi del gioco", () => {
-  const [o] = leggiOrdini([mo([1], [{ type: 11, values: [1, 1, 64], valueTypes: [3, 11, 12] }])], "maggiore", ctx);
+  const [o] = leggiOrdini([mo([1], [{ type: 11, values: [1, 1, 64], valueTypes: [3, 11, 12] }])], ctx);
   assert.equal(o.compiti[0].completato, true);
   assert.equal(o.compiti[0].percento, 100);
   assert.equal(o.completato, true);
@@ -92,14 +91,14 @@ test("ordini: pianeta già liberato, dispacci, giocatori, testi del gioco", () =
   assert.equal(d[1].testo, "NUOVO ORDINE\nDifendete Hellmire.");
   assert.equal(giocatori(stato), 20000);
   assert.equal(pulisci("<i=1>A</i> e <b>B</b>"), "A e B");
-  assert.deepEqual(leggiOrdini(null, "maggiore", ctx), []);
+  assert.deepEqual(leggiOrdini(null, ctx), []);
 });
 
 test("ordini: aggiornamento, ritmo, scadenza e fonti che non rispondono", async () => {
   const cartella = fs.mkdtempSync(path.join(os.tmpdir(), "ordini-"));
   let adesso = ORA;
   let fatto = 1000000;
-  let personaleRotto = false;
+  let dispacciRotti = false;
   const fonti = {
     statiche: async () => ({ guerra: 801, info, pianeti, oggetti }),
     correnti: async () => {
@@ -107,8 +106,7 @@ test("ordini: aggiornamento, ritmo, scadenza e fonti che non rispondono", async 
       return {
         maggiori: ok([mo([fatto], [{ type: 3, values: [2, 2000000], valueTypes: [1, 3] }], {})]),
         stato: ok({ ...stato, time: stato.time + (adesso - ORA) / 1000 }),
-        dispacci: ok([{ id: 9, published: 99999, message: "Avanti!" }]),
-        personale: personaleRotto ? { status: "rejected", reason: new Error("api.diveharder.com non risponde") } : ok([{ id32: 7, progress: [3], expiresIn: 3600, setting: { overrideTitle: "ORDINE PERSONALE", tasks: [{ type: 3, values: [3, 10], valueTypes: [1, 3] }], reward: { type: 1, amount: 5 } } }]),
+        dispacci: dispacciRotti ? { status: "rejected", reason: new Error("api.live.prod.thehelldiversgame.com non risponde") } : ok([{ id: 9, published: 99999, message: "Avanti!" }]),
       };
     },
   };
@@ -118,23 +116,22 @@ test("ordini: aggiornamento, ritmo, scadenza e fonti che non rispondono", async 
     assert.equal(d.guerra, 801);
     assert.equal(d.maggiori.length, 1);
     assert.equal(d.maggiori[0].compiti[0].ritmo, null, "con un solo dato niente ritmo");
-    assert.equal(d.personali[0].titolo, "ORDINE PERSONALE");
-    assert.equal(d.personali[0].compiti[0].testo, "Elimina 10 Automi");
     assert.equal(d.giocatori, 20000);
     assert.deepEqual(d.errori, {});
 
-    // Un'ora dopo: +100.000, il personale non risponde (e quello di prima è scaduto)
+    // Un'ora dopo: +100.000, i dispacci non rispondono
     adesso += 3600 * 1000;
     fatto += 100000;
-    personaleRotto = true;
+    dispacciRotti = true;
     d = await o.aggiorna("prova");
     const r = d.maggiori[0].compiti[0].ritmo;
     assert.equal(Math.round(r.perOra), 100000);
     assert.equal(r.misura, "numero");
     assert.equal(Math.round(r.oreAllaFine), 9, "mancano 900.000 a 100.000 all'ora");
     assert.equal(r.inTempo, true);
-    assert.equal(d.errori.personale, "api.diveharder.com non risponde");
-    assert.deepEqual(d.personali, [], "il personale di ieri è scaduto: non si mostra");
+    assert.equal(d.errori.dispacci, "api.live.prod.thehelldiversgame.com non risponde");
+    assert.equal(d.dispacci.length, 1, "restano i dispacci di prima");
+    assert.equal(d.personali, undefined, "niente Personal Order");
     assert.equal(d.ultimoSuccesso, new Date(adesso).toISOString());
 
     // Dopo un riavvio i dati restano
