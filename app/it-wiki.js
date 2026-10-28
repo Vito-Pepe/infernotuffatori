@@ -11,6 +11,9 @@
 
   const DIFFICOLTA = ["", "Trivial", "Easy", "Medium", "Challenging", "Hard", "Extreme", "Suicide Mission", "Impossible", "Helldive", "Super Helldive"];
   const CLASSI = { leggero: "Leggero", medio: "Medio", pesante: "Pesante" };
+  // Navi e boss (Dropship, Leviathan, Hive Lord...): al posto della classe, e fuori dai punteggi
+  const SPECIALI = { nave: "Nave", boss: "Boss" };
+  const tipoNemico = (n) => SPECIALI[n.speciale] || CLASSI[n.classe];
   const PESI = { leggera: "Leggera", media: "Media", pesante: "Pesante" };
   const PESI_PLURALE = { leggera: "Leggere", media: "Medie", pesante: "Pesanti" };
   const NOMI_COLPO = { proiettile: "Proiettile", esplosione: "Esplosione", raggio: "Raggio", arco: "Arco elettrico", spruzzo: "Getto", mischia: "Corpo a corpo", stato: "Effetto" };
@@ -216,10 +219,10 @@
     return h("p", { class: "tenue piccolo" }, "Disegni di ", autori.map((a, i) => [i ? ", " : "", utenteWiki(a)]), " per la Helldivers Wiki, usati con il permesso dell'autore; dove mancano, le immagini ufficiali del gioco.");
   }
 
-  function chips(valori, attuale, scegli) {
+  function chips(valori, attuale, scegli, classe = "") {
     return h(
       "div",
-      { class: "chips" },
+      { class: `chips ${classe}`.trim() },
       valori.map(([v, nome]) => h("button", { type: "button", class: v === attuale ? "attivo" : "", onclick: () => scegli(v) }, nome)),
     );
   }
@@ -270,7 +273,7 @@
     const c = stato.catalogo;
     const voci = [];
     for (const o of c.oggetti) voci.push({ nome: o.nome, sotto: [PB.NOMI_POSTO[o.slot], o.slot === "stratagemma" ? PB.NOMI_TIPO[o.tipo] : o.tipo].filter(Boolean).join(" · "), href: `#/wiki/oggetto/${o.id}`, icona: () => G.iconaOggetto(o, { titolo: false }) });
-    for (const n of nemici()) voci.push({ nome: n.nome, sotto: `${G.FAZIONI[n.fazione]?.nome} · ${CLASSI[n.classe]}`, href: `#/wiki/nemico/${n.id}`, icona: () => foto(n) });
+    for (const n of nemici()) voci.push({ nome: n.nome, sotto: [G.FAZIONI[n.fazione]?.nome, n.sottofazione, tipoNemico(n)].filter(Boolean).join(" · "), href: `#/wiki/nemico/${n.id}`, icona: () => foto(n) });
     for (const a of armature()) voci.push({ nome: a.nome, sotto: `Armatura ${PESI[a.peso]?.toLowerCase()} · protezione ${a.protezione}`, href: `#/wiki/armatura/${a.id}`, icona: () => foto(a) });
     for (const e of c.elmi || []) voci.push({ nome: e.nome, sotto: "Elmo", href: `#/wiki/elmi/${e.id}`, icona: () => foto(e, "icona", { testa: true, vuota: "⛑" }) });
     for (const m of c.mantelli || []) voci.push({ nome: m.nome, sotto: "Mantello", href: `#/wiki/mantelli/${m.id}`, icona: () => foto(m, "icona", { vuota: "▼" }) });
@@ -327,21 +330,29 @@
   }
 
   function elencoNemici(main) {
-    const filtri = { fazione: "tutte", classe: "tutte", testo: "", ...leggiLocale("it-wiki-nemici", {}) };
+    const filtri = { fazione: "tutte", sotto: "tutte", classe: "tutte", testo: "", ...leggiLocale("it-wiki-nemici", {}) };
     const cerca = h("input", { type: "search", placeholder: "Cerca un nemico", value: filtri.testo, "aria-label": "Cerca un nemico" });
     const barra = h("div");
     const elenco = h("div");
     const ordine = ["terminidi", "automi", "illuminati"];
     const ridisegna = () => {
       scriviLocale("it-wiki-nemici", filtri);
+      // Sotto-fazioni della fazione scelta (Cyborg Legion, Jet Brigade...): i nemici di sempre o una sola
+      const sotto = [...new Set(nemici().filter((n) => n.fazione === filtri.fazione && n.sottofazione).map((n) => n.sottofazione))].sort();
+      if (!sotto.includes(filtri.sotto) && !["tutte", "base"].includes(filtri.sotto)) filtri.sotto = "tutte";
       barra.replaceChildren(
-        chips([["tutte", "Tutte"], ...ordine.map((f) => [f, G.FAZIONI[f].nome])], filtri.fazione, (v) => ((filtri.fazione = v), ridisegna())),
+        chips([["tutte", "Tutte"], ...ordine.map((f) => [f, G.FAZIONI[f].nome])], filtri.fazione, (v) => ((filtri.fazione = v), (filtri.sotto = "tutte"), ridisegna())),
+        sotto.length ? h("div", { style: "height:6px" }) : null,
+        // Vanno a capo: sul telefono quelle fuori dallo schermo non si vedrebbero
+        sotto.length ? chips([["tutte", "Tutti"], ["base", "Di sempre"], ...sotto.map((x) => [x, x])], filtri.sotto, (v) => ((filtri.sotto = v), ridisegna()), "avvolte") : null,
         h("div", { style: "height:6px" }),
-        chips([["tutte", "Tutte le classi"], ["leggero", "Leggeri"], ["medio", "Medi"], ["pesante", "Pesanti"]], filtri.classe, (v) => ((filtri.classe = v), ridisegna())),
+        chips([["tutte", "Tutte le classi"], ["leggero", "Leggeri"], ["medio", "Medi"], ["pesante", "Pesanti"], ["speciale", "Navi e boss"]], filtri.classe, (v) => ((filtri.classe = v), ridisegna()), "avvolte"),
       );
       const q = normale(filtri.testo);
+      const passaSotto = (n) => filtri.fazione === "tutte" || filtri.sotto === "tutte" || (filtri.sotto === "base" ? !n.sottofazione : n.sottofazione === filtri.sotto);
+      const passaClasse = (n) => filtri.classe === "tutte" || (filtri.classe === "speciale" ? Boolean(n.speciale) : !n.speciale && n.classe === filtri.classe);
       const scelti = nemici()
-        .filter((n) => (filtri.fazione === "tutte" || n.fazione === filtri.fazione) && (filtri.classe === "tutte" || n.classe === filtri.classe) && (!q || normale(n.nome).includes(q)))
+        .filter((n) => (filtri.fazione === "tutte" || n.fazione === filtri.fazione) && passaSotto(n) && passaClasse(n) && (!q || normale(n.nome).includes(q)))
         .sort((a, b) => ordine.indexOf(a.fazione) - ordine.indexOf(b.fazione) || a.salute - b.salute);
       elenco.replaceChildren(
         ...(scelti.length
@@ -350,7 +361,7 @@
                 "a",
                 { class: "riga riga-wiki", href: `#/wiki/nemico/${n.id}` },
                 foto(n),
-                h("div", { class: "testo" }, h("div", { class: "nome" }, n.nome), h("div", { class: "autore" }, `${G.FAZIONI[n.fazione]?.nome} · ${CLASSI[n.classe]}${n.difficolta ? ` · da difficoltà ${n.difficolta}` : ""}`)),
+                h("div", { class: "testo" }, h("div", { class: "nome" }, n.nome), h("div", { class: "autore" }, `${[G.FAZIONI[n.fazione]?.nome, n.sottofazione, tipoNemico(n)].filter(Boolean).join(" · ")}${n.difficolta ? ` · da difficoltà ${n.difficolta}` : ""}`)),
                 h("div", { class: "valori" }, h("span", { title: "Salute del corpo" }, `♥ ${numero(n.salute, 0)}`), grado(corazzaCorpo(n), "AV")),
               ),
             )
@@ -483,7 +494,8 @@
     if (!n) return nonTrovato(main, "Nemico");
     const corpo = n.parti.find((p) => p.main);
     const deboli = n.parti.filter((p) => !p.main).sort((a, b) => a.av - b.av || (a.salute === "main" ? 1e9 : a.salute) - (b.salute === "main" ? 1e9 : b.salute));
-    const migliori = miglioriContro(n);
+    // Navi e boss non si combattono come gli altri (volano, sono enormi): il modello non li stima
+    const migliori = n.speciale ? null : miglioriContro(n);
     const av = corpo?.av ?? 0;
     monta(
       main,
@@ -491,7 +503,7 @@
       capo(
         foto(n, "foto-grande"),
         n.nome,
-        [G.FAZIONI[n.fazione]?.nome, CLASSI[n.classe]].filter(Boolean).join(" · "),
+        [G.FAZIONI[n.fazione]?.nome, n.sottofazione, tipoNemico(n)].filter(Boolean).join(" · "),
         dati([
           ["Salute", numero(n.salute, 0)],
           ["Corazza del corpo", corpo ? [grado(corpo.av, "AV"), ` ${nomeGrado(corpo.av, "AV")}`] : null],
@@ -525,14 +537,18 @@
             )
           : null,
       ),
-      h(
-        "div",
-        { class: "griglia3" },
-        tabellaMigliori("Armi in mano", migliori.mano),
-        tabellaMigliori("Granate", migliori.granate),
-        tabellaMigliori("Stratagemmi", migliori.stratagemmi),
-      ),
-      h("p", { class: "tenue piccolo" }, "Le armi migliori sono stimate dal nostro modello, con i dati del gioco: uccisioni al minuto contro questo nemico e colpi per abbatterlo. ", h("a", { href: "#/teoria" }, "Come calcoliamo")),
+      migliori
+        ? [
+            h(
+              "div",
+              { class: "griglia3" },
+              tabellaMigliori("Armi in mano", migliori.mano),
+              tabellaMigliori("Granate", migliori.granate),
+              tabellaMigliori("Stratagemmi", migliori.stratagemmi),
+            ),
+            h("p", { class: "tenue piccolo" }, "Le armi migliori sono stimate dal nostro modello, con i dati del gioco: uccisioni al minuto contro questo nemico e colpi per abbatterlo. ", h("a", { href: "#/teoria" }, "Come calcoliamo")),
+          ]
+        : h("p", { class: "tenue piccolo" }, "Navi e boss non si combattono come gli altri nemici (volano o sono enormi): qui non stimiamo le armi migliori e non contano nei punteggi. Per abbatterli guarda l'anatomia e i consigli tattici."),
       zonaTesti("nemico", n.id, (v) => [
         v.anatomia?.length ? [h("h2", null, "Anatomia"), h("div", { class: "pannello" }, tabellaAnatomia(v.anatomia), h("p", { class: "tenue piccolo" }, "Durevole: quanto conta il danno durevole dell'arma. Al corpo: quota del danno che passa alla salute del corpo (∞ = senza limite). Esplosioni: resistenza, 100% = immune (il danno va al corpo). Fatale: distruggerla uccide."))] : null,
         attacchiNemico(v),
@@ -674,9 +690,9 @@
     const zona = h("div");
     const disegna = () => {
       scriviLocale("it-wiki-contro", fazione);
-      const lista = nemici().filter((n) => n.fazione === fazione);
-      const a = M.analizzaOggetto(o, lista);
-      const righe = a.dettagli.map((d) => ({ ...d, n: lista.find((n) => n.nome === d.nemico) })).sort((x, y) => (x.n?.salute ?? 0) - (y.n?.salute ?? 0));
+      const lista = nemici().filter((n) => n.fazione === fazione && !n.speciale && n.parti?.length);
+      const a = M.analizzaOggetto(o, M.nemiciDi(stato.catalogo, fazione));
+      const righe = M.analizzaOggetto(o, lista).dettagli.map((d) => ({ ...d, n: lista.find((n) => n.nome === d.nemico) })).sort((x, y) => Number(Boolean(x.n?.sottofazione)) - Number(Boolean(y.n?.sottofazione)) || (x.n?.sottofazione || "").localeCompare(y.n?.sottofazione || "") || (x.n?.salute ?? 0) - (y.n?.salute ?? 0));
       zona.replaceChildren(
         chips(["terminidi", "automi", "illuminati"].map((f) => [f, G.FAZIONI[f].nome]), fazione, (v) => ((fazione = v), disegna())),
         h(
@@ -698,7 +714,7 @@
                 h(
                   "tr",
                   null,
-                  h("td", null, r.n ? h("a", { href: `#/wiki/nemico/${r.n.id}` }, r.nemico) : r.nemico),
+                  h("td", null, r.n ? h("a", { href: `#/wiki/nemico/${r.n.id}` }, r.nemico) : r.nemico, r.n?.sottofazione ? h("span", { class: "tenue piccolo" }, ` · ${r.n.sottofazione}`) : null),
                   h("td", null, CLASSI[r.classe]),
                   h("td", { class: "num" }, numero(r.kpm)),
                   h("td", { class: "num" }, Number.isFinite(r.colpi) && r.colpi ? String(r.colpi) : "–"),
@@ -708,7 +724,7 @@
             ),
           ),
         ),
-        h("p", { class: "tenue piccolo" }, "Stime del nostro modello con i dati del gioco: punteggi da 0 a 10, uccisioni al minuto e colpi per abbattere ogni nemico (solo per le armi in mano). ", h("a", { href: "#/teoria" }, "Come calcoliamo")),
+        h("p", { class: "tenue piccolo" }, "Stime del nostro modello con i dati del gioco: punteggi da 0 a 10, uccisioni al minuto e colpi per abbattere ogni nemico (solo per le armi in mano). I punteggi contano i nemici di sempre; quelli delle sotto-fazioni sono in fondo alla tabella. Navi e boss non ci sono: non si combattono come gli altri nemici. ", h("a", { href: "#/teoria" }, "Come calcoliamo")),
       );
     };
     disegna();

@@ -52,8 +52,9 @@ function grezzo() {
       passive: ["Fortified"],
       potenziamenti: ["Vitality Enhancement"],
       terminidi: ["Charger", "Bug Hole"],
-      automi: [],
-      illuminati: [],
+      // Il Charger anche fuori posto, per vedere che non diventa un Automa
+      automi: ["Agitator", "Trooper", "Charger", "Stalker"],
+      illuminati: ["Warp Ship"],
     },
     pagine: {
       "AR-23 Liberator": pagina("AR-23 Liberator", `{{Infobox Weapon
@@ -104,6 +105,41 @@ function grezzo() {
   {{Anatomy Row | part_name = Main | health = 2,400 | av = 4 | durability = 100% | percent_to_main = - | fatal = Yes | exdr = 25% }}
   {{Anatomy Row | part_name = Head | health = 1,200 | av = 4 | durability = 75% | percent_to_main = 70% | fatal = Yes | exdr = 25% }}
   {{Anatomy Row | part_name = Claws (2) | health = 500 | av = 4 | durability = 70% | percent_to_main = 70% | fatal = No | exdr = 100% }}
+}}`),
+      // Una sotto-fazione al posto della fazione, e senza taglia
+      Agitator: pagina("Agitator", `{{Infobox Enemy
+| faction = Cyborg Legion
+| health = 600
+}}
+{{Anatomy Table|
+  {{Anatomy Row | part_name = Main | health = 600 | av = 2 | durability = 0% | percent_to_main = - | fatal = Yes | exdr = 0% }}
+}}`),
+      // La fazione al singolare
+      Trooper: pagina("Trooper", `{{Infobox Enemy
+| faction = Automaton
+| size = 1
+| health = 125
+}}
+{{Anatomy Table|
+  {{Anatomy Row | part_name = Main | health = 125 | av = 1 | durability = 0% | percent_to_main = - | fatal = Yes | exdr = 0% }}
+}}`),
+      // Una nave: nella Wiki sì, nei punteggi no
+      "Warp Ship": pagina("Warp Ship", `{{Infobox Enemy
+| faction = Illuminate
+| size = 3
+| health = 3,500
+}}
+{{Anatomy Table|
+  {{Anatomy Row | part_name = Main | health = 3,500 | av = 5 | durability = 0% | percent_to_main = - | fatal = Yes | exdr = 0% }}
+}}`),
+      // Un Terminide nella categoria degli Automi
+      Stalker: pagina("Stalker", `{{Infobox Enemy
+| faction = Terminid
+| size = 1
+| health = 600
+}}
+{{Anatomy Table|
+  {{Anatomy Row | part_name = Main | health = 600 | av = 1 | durability = 0% | percent_to_main = - | fatal = Yes | exdr = 0% }}
 }}`),
       Demolition: pagina("Demolition", `=== Demolition Force vs. Structures ===
 {| class="wikitable sortable"
@@ -185,8 +221,23 @@ test("catalogo dal materiale della wiki", () => {
   assert.deepEqual(charger.parti.map((p) => p.nome), ["Main", "Head"], "solo parti fatali");
   assert.equal(charger.parti[1].durevole, 0.75);
   // Nella wiki l'anatomia è completa, anche con le parti non fatali
-  assert.equal(c.versione, 3);
+  assert.equal(c.versione, 4);
   assert.deepEqual(c.wiki.nemici.charger.anatomia.map((p) => [p.nome, p.fatale, p.resistenzaEsplosioni]), [["Main", true, 0.25], ["Head", true, 0.25], ["Claws (2)", false, 1]]);
+  // Le sotto-fazioni (Cyborg Legion, Jet Brigade, Predator Strain...) scritte al posto della
+  // fazione, la fazione al singolare, e niente nemici di un'altra fazione nella categoria sbagliata
+  const agitator = c.nemici.find((n) => n.id === "agitator");
+  assert.equal(agitator.fazione, "automi");
+  assert.equal(agitator.sottofazione, "Cyborg Legion");
+  assert.equal(agitator.taglia, null, "senza taglia va bene lo stesso");
+  const trooper = c.nemici.find((n) => n.id === "trooper");
+  assert.equal(trooper.fazione, "automi");
+  assert.equal(trooper.sottofazione, undefined);
+  assert.deepEqual(c.nemici.filter((n) => n.id === "charger").map((n) => n.fazione), ["terminidi"]);
+  assert.ok(!c.nemici.some((n) => n.id === "stalker"), "un Terminide nella categoria degli Automi resta fuori");
+  const nave = c.nemici.find((n) => n.id === "warp-ship");
+  assert.equal(nave.fazione, "illuminati");
+  assert.equal(nave.speciale, "nave");
+  assert.equal(trooper.speciale, undefined);
   assert.deepEqual(c.armature, [], "senza tabelle Cargo niente armature");
   assert.deepEqual(c.strutture, [
     { fazione: "terminidi", nome: "Bug Hole (Inner)", balistica: true, forza: 20 },
