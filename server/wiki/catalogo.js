@@ -3,10 +3,17 @@
 // statistiche estratte dal gioco. Funzione pura: niente rete, niente file.
 const W = require("./wikitesto");
 const { costruisciArmature, fattoriArmatura, testo: testoCargo } = require("./armature");
-const { enciclopedia, parteAnatomia, PAGINE_MECCANICHE } = require("./enciclopedia");
+const { enciclopedia, indice, fontiDemolizione, parteAnatomia, PAGINE_MECCANICHE } = require("./enciclopedia");
+const { schede, schedeVecchie } = require("./datiattacchi");
+
+// Dati del gioco da cui viene ogni oggetto: servono per le schede complete degli attacchi
+// (nei testi della wiki), senza appesantire il catalogo
+const SORGENTI = new WeakMap();
 
 // 2: nemici con descrizione e immagine, armature, elmi, mantelli, meccaniche e testi della wiki
-const VERSIONE = 2;
+// 3: fonti della demolizione, strutture di Super Terra, immagini di elmi e mantelli (e quelle
+//    delle armature cambiate: il catalogo del volume di prima non vale più)
+const VERSIONE = 3;
 
 // Stratagemmi degli eventi (fuochi d'artificio, sorvoli): non servono in battaglia
 const ESCLUSI = new Set(["Eagle Fly By", "Orbital Confetti"]);
@@ -197,6 +204,7 @@ function colpiVecchi(titolo, dati) {
     }
     if (!out.length) continue;
     return {
+      sorgente: { vecchio: true, modulo: M, arma: w, nome: voce[0] },
       colpi: out,
       stat: numeri({ cadenza: w.rounds_per_minute ?? null, caricatore: w.magazine_capacity ?? null, riserva: w.magazines_refill ?? null, ergonomia: w.ergonomics ?? null }),
     };
@@ -298,7 +306,7 @@ function arma(pagina, slot, dati) {
   const w = cercaArma(pagina.titolo, dati);
   const c = w ? colpi(w.arma.attacks, w.t, w.altre, dati.stati) : [];
   const vecchi = c.length ? null : colpiVecchi(pagina.titolo, dati);
-  return base(pagina, slot, {
+  return conSorgenti(vecchi ? [vecchi.sorgente] : w ? [{ voce: w.arma, t: w.t, altre: w.altre }] : [], base(pagina, slot, {
     tipo: W.pulisci(p.weapon_type) || null,
     fonte: fonte(p.source),
     descrizione: citazione(pagina.testo),
@@ -316,7 +324,12 @@ function arma(pagina, slot, dati) {
       modalita: W.elenco(p.firing_modes),
     }),
     combattimento: vecchi ? { ...vecchi.stat, colpi: vecchi.colpi } : w ? { ...numeri(statArma(w.arma)), colpi: c } : null,
-  });
+  }));
+}
+
+function conSorgenti(sorgenti, oggetto) {
+  if (oggetto && sorgenti.length) SORGENTI.set(oggetto, sorgenti);
+  return oggetto;
 }
 
 // Arma nei dati estratti: per nome intero, poi con tolleranza sulla grafia
@@ -341,7 +354,7 @@ function granata(pagina, dati) {
   if (!ib) return null;
   const p = ib.nominati;
   const w = cercaArma(pagina.titolo, dati);
-  return base(pagina, "granata", {
+  return conSorgenti(w ? [{ voce: w.arma, t: w.t, altre: w.altre }] : [], base(pagina, "granata", {
     tipo: W.pulisci(p.weapon_type) || null,
     fonte: fonte(p.source),
     descrizione: citazione(pagina.testo),
@@ -357,7 +370,7 @@ function granata(pagina, dati) {
     combattimento: w
       ? { ...numeri({ iniziali: w.arma.start ?? null, massimo: w.arma.max ?? null }), colpi: colpi(w.arma.attacks, w.t, w.altre, dati.stati) }
       : null,
-  });
+  }));
 }
 
 function stratagemma(pagina, dati) {
@@ -392,8 +405,15 @@ function stratagemma(pagina, dati) {
   }
   const vecchi = colpiStratagemma.length ? null : colpiVecchi(pagina.titolo, dati);
   if (vecchi) colpiStratagemma = vecchi.colpi;
+  // Come la wiki: le armi di supporto con i dati dell'arma, gli altri con quelli dello
+  // stratagemma (che comprendono le armi di torrette, mezzi ed esoscheletri)
+  const sorgenti = vecchi ? [vecchi.sorgente] : [];
+  if (!vecchi) {
+    if (s && (tipo !== "arma" || !w)) sorgenti.push({ voce: s, tipo: "stratagems", t: tS, altre: tA });
+    if (w && (tipo === "arma" || !s?.attacks?.length)) sorgenti.push({ voce: w.arma, t: w.t, altre: w.altre });
+  }
 
-  return base(pagina, "stratagemma", {
+  return conSorgenti(sorgenti, base(pagina, "stratagemma", {
     tipo,
     tipoWiki: W.pulisci(p.stratagem_type),
     permesso: W.pulisci(p.permit_type),
@@ -410,9 +430,15 @@ function stratagemma(pagina, dati) {
       ricarica: W.numero(p.reload_time),
       cadenza: W.numero(p.fire_rate),
       chiamata: W.numero(tab.call_time ?? p.call_time),
-      attesa: s?.cooldown ?? W.numero(tab.cooldown ?? p.cooldown ?? p.base_cooldown),
+      // Ricarica di base (senza i moduli della nave): quella della pagina, aggiornata dagli
+      // editori dopo le patch; i dati del gioco solo se la pagina non la dice (in qualche
+      // caso sono sbagliati: MG-43 600 invece di 480, Rocket Sentry 45 invece di 150)
+      attesa: W.numero(tab.cooldown ?? p.cooldown ?? p.base_cooldown) ?? s?.cooldown ?? null,
       usi: usiDati ?? (/(unlimited|inf)/i.test(String(tab.uses ?? p.uses ?? "")) ? null : usiWiki),
       riarmo: W.numero(tab.rearm_time),
+      munizioniTorretta: W.numero(tab.sentry_ammo),
+      saluteTorretta: W.numero(tab.sentry_health),
+      rotazioneTorretta: W.numero(tab.sentry_turn_rate),
       livello: W.numero(p.unlock_level),
     }),
     combattimento: {
@@ -429,7 +455,76 @@ function stratagemma(pagina, dati) {
       }),
       colpi: colpiStratagemma,
     },
-  });
+    moduli: moduliNave(tipoWiki, tab, W.numero(tab.cooldown ?? p.cooldown ?? p.base_cooldown) ?? s?.cooldown ?? null),
+  }));
+}
+
+// Valori con i moduli della nave, come nella tabella "Stratagem Stats Table" della wiki:
+// quelli scritti sulla pagina, altrimenti le stesse regole del modello (pagina Ship Modules:
+// Morale Augmentation −5% all'attesa di tutti gli stratagemmi, più il modulo del tipo)
+const MODULI_ATTESA = {
+  eagle: { nome: "Liquid-Ventilated Cockpit", effetto: "−50% all'attesa delle Aquile", fattore: 0.45 },
+  orbital: { nome: "Zero-G Breech Loading", effetto: "−10% all'attesa degli orbitali", fattore: 0.855 },
+  backpack: { nome: "Hand Carts", effetto: "−10% all'attesa degli zaini", fattore: 0.855 },
+  "support weapon": { nome: "Streamlined Request Process", effetto: "−10% all'attesa delle armi di supporto", fattore: 0.855 },
+  emplacement: { nome: "Synthetic Supplementation", effetto: "−10% all'attesa di postazioni, torrette e rifornimenti", fattore: 0.855 },
+  sentry: { nome: "Synthetic Supplementation", effetto: "−10% all'attesa di postazioni, torrette e rifornimenti", fattore: 0.855 },
+};
+const MODULI_CHIAMATA = {
+  orbital: { nome: "Targeting Software Upgrade", effetto: "−1 s alla chiamata degli orbitali" },
+  "support weapon": { nome: "Streamlined Launch Process", effetto: "le armi di supporto partono subito" },
+  sentry: { nome: "Dynamic Tracking", effetto: "le torrette partono subito" },
+  emplacement: { nome: "Rapid Launch System", effetto: "le postazioni partono subito" },
+};
+const MORALE = { nome: "Morale Augmentation", effetto: "−5% all'attesa di tutti gli stratagemmi" };
+
+function moduliNave(tipoWiki, tab, attesa) {
+  const numero = (v) => W.numero(v);
+  const valori = {};
+  const moduli = [];
+  const aggiungi = (m) => {
+    if (m && !moduli.some((x) => x.nome === m.nome)) moduli.push({ nome: m.nome, effetto: m.effetto });
+  };
+  const chiamata = numero(tab.call_time_upgraded);
+  if (chiamata != null && chiamata !== numero(tab.call_time)) {
+    valori.chiamata = chiamata;
+    aggiungi(MODULI_CHIAMATA[tipoWiki]);
+  }
+  if (attesa != null && attesa > 0) {
+    const tipo = MODULI_ATTESA[tipoWiki];
+    const scritto = numero(tab.cooldown_upgraded_all);
+    valori.attesa = Math.round((scritto ?? attesa * (tipo?.fattore ?? 0.95)) * 100) / 100;
+    aggiungi(MORALE);
+    aggiungi(tipo);
+  }
+  const usi = numero(tab.uses_upgraded);
+  if (usi != null && usi !== numero(tab.uses)) {
+    valori.usi = usi;
+    aggiungi({ nome: "Expanded Weapons Bay", effetto: "+1 uso delle Aquile per riarmo" });
+  }
+  const riarmo = numero(tab.rearm_time);
+  if (riarmo != null) {
+    valori.riarmo = numero(tab.rearm_time_upgraded_pchp) ?? Math.round(riarmo * 0.8 * 100) / 100;
+    valori.riarmoPresto = numero(tab.rearm_time_upgraded_act) ?? Math.round(riarmo * 0.8 * 0.9 * 100) / 100;
+    aggiungi({ nome: "Pit Crew Hazard Pay", effetto: "−20% al riarmo delle Aquile" });
+    aggiungi({ nome: "Advanced Crew Training", effetto: "un altro −10% se chiami il riarmo con usi rimasti" });
+  }
+  const munizioni = numero(tab.sentry_ammo);
+  if (munizioni != null) {
+    valori.munizioniTorretta = numero(tab.sentry_ammo_upgraded) ?? Math.round(munizioni * 1.5);
+    aggiungi({ nome: "Shock Absorption Gel", effetto: "+50% di munizioni alle torrette" });
+  }
+  const salute = numero(tab.sentry_health_upgraded);
+  if (salute != null) {
+    valori.saluteTorretta = salute;
+    aggiungi({ nome: "Advanced Construction", effetto: "+50% di salute alle torrette" });
+  }
+  const rotazione = numero(tab.sentry_turn_rate_upgraded);
+  if (rotazione != null) {
+    valori.rotazioneTorretta = rotazione;
+    aggiungi({ nome: "High-Quality Lubricant", effetto: "le torrette si girano più in fretta" });
+  }
+  return Object.keys(valori).length ? { ...valori, moduli } : null;
 }
 
 function passiva(pagina) {
@@ -501,7 +596,8 @@ function nemico(pagina, fazione) {
 
 // --- Strutture (nidi, fabbriche, torri): forza di demolizione che serve ---
 
-const FAZIONI_STRUTTURE = { neutral: "tutte", terminids: "terminidi", automatons: "automi", illuminate: "illuminati" };
+// "Super Earth Federation": strutture alleate (mura delle colonie, cancelli, megacittà)
+const FAZIONI_STRUTTURE = { neutral: "tutte", "super earth federation": "superterra", terminids: "terminidi", automatons: "automi", illuminate: "illuminati" };
 
 // Legge la tabella "Demolition Force vs. Structures" della pagina Demolition
 function strutture(pagina) {
@@ -640,8 +736,22 @@ function costruisci(grezzo) {
   for (const a of armature) {
     const pa = passivaDi(a.passiva);
     if (pa) a.passivaId = pa.id;
-    a.icona = a.immagine ? { tipo: "wiki", file: a.immagine, nome: `armatura-${a.id}.png`, larghezza: 160 } : null;
   }
+  // Immagini: prima quelle ufficiali del gioco caricate sulla wiki (il set indossato
+  // nell'armeria, le icone dell'armeria), poi il disegno della tabella Cargo. Molti disegni
+  // sono di un utente che chiede di usarli solo sulla wiki: icone.js li salta.
+  const candidati = (...file) => [...new Map(file.filter((c) => c?.file).map((c) => [c.file, c])).values()];
+  const iconaWiki = (...file) => ({ tipo: "wiki", candidati: candidati(...file), larghezza: 160 });
+  const nomiArmature = new Set(armature.map((a) => a.nome));
+  for (const a of armature) {
+    a.icona = iconaWiki({ file: `${a.nome} Armor Set Image.png`, vista: "set" }, { file: `${a.nome} Body Icon.png` }, { file: `${a.nome} Body Armory.png` }, { file: a.immagine });
+  }
+  for (const e of elmi) {
+    // Se non c'è un'immagine dell'elmo da solo, il set con l'armatura dello stesso nome
+    const set = nomiArmature.has(e.nome) ? { file: `${e.nome} Armor Set Image.png`, vista: "set" } : null;
+    e.icona = iconaWiki({ file: `${e.nome} Helmet Icon.png` }, { file: `${e.nome} Helmet Armory.png` }, { file: e.immagine }, set);
+  }
+  for (const m of mantelli) m.icona = iconaWiki({ file: `${m.nome} Cape Icon.png` }, { file: `${m.nome} Cape Armory.png` }, { file: m.immagine });
   // Effetto preciso di ogni passiva (con i numeri) dalla tabella Cargo
   for (const r of grezzo.tabelle?.passive || []) {
     const o = passivaDi(W.pulisci(testoCargo(r.title)));
@@ -652,7 +762,18 @@ function costruisci(grezzo) {
   const versioni = [dati.armi?.wep_version, dati.stratagemmi?.strat_version].filter(Boolean);
   oggetti.sort((a, b) => a.slot.localeCompare(b.slot) || a.nome.localeCompare(b.nome));
   nemici.sort((a, b) => a.fazione.localeCompare(b.fazione) || a.taglia - b.taglia || a.nome.localeCompare(b.nome));
-  const wiki = enciclopedia({ pagine, oggetti, nemici, armature, senzaSigla });
+  const collega = indice({ oggetti, nemici, armature, senzaSigla });
+  const wiki = enciclopedia({ pagine, oggetti, nemici, armature, senzaSigla, collega });
+  // Tutti i numeri degli attacchi, come nella sezione "Detailed Weapon Statistics" della wiki
+  for (const o of oggetti) {
+    const sorgenti = SORGENTI.get(o);
+    if (!sorgenti) continue;
+    const elenco = sorgenti.flatMap((x) => (x.vecchio ? schedeVecchie({ ...x, stati: dati.stati }) : schede({ ...x, stati: dati.stati })));
+    if (elenco.length) {
+      const versione = o.slot === "stratagemma" ? dati.stratagemmi?.strat_version || dati.armi?.wep_version : dati.armi?.wep_version;
+      wiki.oggetti[o.id] = { ...(wiki.oggetti[o.id] || {}), dati: { versione: versione ? String(versione).replace(/^0+(?=\d)/, "") : null, schede: elenco } };
+    }
+  }
   return {
     versione: VERSIONE,
     generato: grezzo.scaricato || new Date().toISOString(),
@@ -664,6 +785,8 @@ function costruisci(grezzo) {
     oggetti,
     nemici,
     strutture: strutture(pagine.Demolition),
+    // Attacchi con almeno 20 di forza di demolizione secondo la wiki (si aggiungono ai dati del gioco)
+    demolizioni: fontiDemolizione(pagine.Demolition?.testo, collega, oggetti),
     armature,
     elmi,
     mantelli,

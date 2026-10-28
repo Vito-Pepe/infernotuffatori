@@ -507,15 +507,38 @@
     return 6;
   }
 
-  function demolisce(o, struttura) {
-    let ok = false;
-    const visita = (c) =>
+  // --- Demolizione: chi distrugge una struttura ---
+  // Basta un attacco con forza di demolizione almeno pari a quella della struttura e, se la
+  // struttura lo chiede (buchi dei nidi, prese d'aria delle fabbriche, navi atterrate), che
+  // sia un'esplosione. Fonti: i dati del gioco e la tabella della wiki ("Demolition Force
+  // Sources"). Gli attacchi che capitano solo in casi particolari (contraccolpo,
+  // sovraccarico, l'oggetto che esplode o viene distrutto) sono segnati come tali.
+  function fontiDemolizione(o, catalogo) {
+    const out = [];
+    const visita = (c, arma) =>
       (c?.colpi || []).forEach((x) => {
-        if (x.tipo === "arma") visita(x);
-        else if (x.tipo !== "stato" && (x.demolizione || 0) >= struttura.forza && (!struttura.balistica || x.tipo === "esplosione")) ok = true;
+        if (x.tipo === "arma") visita(x, x.nome || arma);
+        else if (x.tipo !== "stato" && (x.demolizione || 0) > 0) out.push({ forza: x.demolizione, esplosiva: x.tipo === "esplosione", tipo: x.tipo, arma: arma || null, situazionale: Boolean(x.retro) });
       });
-    visita(o.combattimento);
-    return ok;
+    visita(o?.combattimento, null);
+    for (const d of catalogo?.demolizioni || []) {
+      if (d.id && d.id === o?.id) out.push({ forza: d.forza, esplosiva: Boolean(d.esplosiva), attacco: d.attacco || null, situazionale: Boolean(d.situazionale), wiki: true });
+    }
+    return out;
+  }
+
+  // L'attacco migliore che distrugge la struttura (null se nessuno): prima quelli normali,
+  // poi i casi particolari; prima le esplosioni (basta prendere la struttura nel raggio),
+  // poi i colpi diretti; a parità la forza più alta
+  function demolizione(o, struttura, catalogo) {
+    const buoni = fontiDemolizione(o, catalogo).filter((f) => f.forza >= struttura.forza && (!struttura.balistica || f.esplosiva));
+    buoni.sort((a, b) => Number(a.situazionale) - Number(b.situazionale) || Number(b.esplosiva) - Number(a.esplosiva) || b.forza - a.forza);
+    return buoni[0] || null;
+  }
+
+  function demolisce(o, struttura, catalogo) {
+    const d = demolizione(o, struttura, catalogo);
+    return Boolean(d && !d.situazionale);
   }
 
   function obiettivi(oggetti, catalogo, fazione) {
@@ -527,8 +550,8 @@
     for (const s of strutture) {
       const nome = s.nome.replace(/\s*\([^)]*\)\s*$/, "");
       const servono = s.balistica ? 4 : 1;
-      const copertura = 1 - oggetti.reduce((p, o) => (demolisce(o, s) ? p * (1 - Math.min(1, usiPerDieciMinuti(o) / servono)) : p), 1);
-      const con = oggetti.filter((o) => demolisce(o, s)).map((o) => o.nome);
+      const copertura = 1 - oggetti.reduce((p, o) => (demolisce(o, s, catalogo) ? p * (1 - Math.min(1, usiPerDieciMinuti(o) / servono)) : p), 1);
+      const con = oggetti.filter((o) => demolisce(o, s, catalogo)).map((o) => o.nome);
       const prima = gruppi.get(nome);
       if (!prima || copertura > prima.copertura) gruppi.set(nome, { nome, forza: s.forza, copertura, con });
     }
@@ -819,6 +842,8 @@
     analizza,
     potenza,
     analizzaOggetto,
+    demolizione,
+    fontiDemolizione,
     colpiPerUccidere,
     moltiplicatore,
     tipoGittata,

@@ -193,8 +193,11 @@
     return zona;
   }
 
-  function foto(x, classe = "icona") {
-    return x?.icona ? h("span", { class: `${classe} foto` }, h("img", { src: `/icone/${x.icona}`, alt: x.nome, loading: "lazy", decoding: "async" })) : h("span", { class: `${classe} vuota` }, "?");
+  // `testa`: per gli elmi con l'immagine del set, ingrandisce la testa
+  function foto(x, classe = "icona", { testa = false, vuota = "?" } = {}) {
+    if (!x?.icona) return h("span", { class: `${classe} vuota` }, vuota);
+    const vista = x.vista === "set" ? (testa ? " set testa" : " set") : "";
+    return h("span", { class: `${classe} foto${vista}` }, h("img", { src: `/icone/${x.icona}`, alt: x.nome, loading: "lazy", decoding: "async" }));
   }
 
   function chips(valori, attuale, scegli) {
@@ -253,8 +256,8 @@
     for (const o of c.oggetti) voci.push({ nome: o.nome, sotto: [PB.NOMI_POSTO[o.slot], o.slot === "stratagemma" ? PB.NOMI_TIPO[o.tipo] : o.tipo].filter(Boolean).join(" · "), href: `#/wiki/oggetto/${o.id}`, icona: () => G.iconaOggetto(o, { titolo: false }) });
     for (const n of nemici()) voci.push({ nome: n.nome, sotto: `${G.FAZIONI[n.fazione]?.nome} · ${CLASSI[n.classe]}`, href: `#/wiki/nemico/${n.id}`, icona: () => foto(n) });
     for (const a of armature()) voci.push({ nome: a.nome, sotto: `Armatura ${PESI[a.peso]?.toLowerCase()} · protezione ${a.protezione}`, href: `#/wiki/armatura/${a.id}`, icona: () => foto(a) });
-    for (const e of c.elmi || []) voci.push({ nome: e.nome, sotto: "Elmo", href: "#/wiki/elmi", icona: () => h("span", { class: "icona vuota" }, "⛑") });
-    for (const m of c.mantelli || []) voci.push({ nome: m.nome, sotto: "Mantello", href: "#/wiki/mantelli", icona: () => h("span", { class: "icona vuota" }, "▼") });
+    for (const e of c.elmi || []) voci.push({ nome: e.nome, sotto: "Elmo", href: `#/wiki/elmi/${e.id}`, icona: () => foto(e, "icona", { testa: true, vuota: "⛑" }) });
+    for (const m of c.mantelli || []) voci.push({ nome: m.nome, sotto: "Mantello", href: `#/wiki/mantelli/${m.id}`, icona: () => foto(m, "icona", { vuota: "▼" }) });
     for (const s of c.strutture || []) voci.push({ nome: s.nome, sotto: `Struttura · forza ${s.forza}`, href: "#/wiki/strutture", icona: () => h("span", { class: "icona vuota" }, "▣") });
     for (const p of c.meccaniche?.pagine || []) voci.push({ nome: p.titolo, sotto: "Pagina della wiki sulle meccaniche (inglese)", href: `#/wiki/pagina/${p.id}`, icona: () => h("span", { class: "icona vuota" }, "§") });
     for (const v of voci) v.chiave = normale(`${v.nome} ${v.sotto}`);
@@ -696,6 +699,42 @@
     return h("section", null, h("h2", null, "Contro i nemici"), h("div", { class: "pannello" }, zona));
   }
 
+  // Tutti i numeri degli attacchi, come nella sezione "Detailed Weapon Statistics" della wiki
+  const TIPI_SCHEDA = { arma: "Arma", stratagemma: "Stratagemma", proiettile: "Proiettile", esplosione: "Esplosione", raggio: "Raggio", arco: "Arco elettrico", getto: "Getto", colpo: "Colpo", effetto: "Effetto" };
+
+  function datiCompleti(d) {
+    if (!d?.schede?.length) return null;
+    const posto = new Map(d.schede.map((x, i) => [x.id, i]));
+    const nomeScheda = (x) => String(x.titolo || x.id).replace(/_/g, " ");
+    const schede = [];
+    const valore = (r) => {
+      if (r[2] === "ap") return r[0] === "Corazza" ? grado(r[1], "AV") : [grado(r[1]), ` ${nomeGrado(r[1])}`];
+      if (r[2] === "rif") {
+        const i = posto.get(r[1]);
+        if (i == null) return String(r[1]).replace(/_/g, " ");
+        return h("a", { href: "#", onclick: (e) => (e.preventDefault(), schede[i]?.scrollIntoView({ behavior: "smooth", block: "start" })) }, nomeScheda(d.schede[i]));
+      }
+      return r[1];
+    };
+    for (const x of d.schede) {
+      schede.push(
+        h(
+          "div",
+          { class: `pannello scheda-dati livello-${Math.min(x.livello || 0, 3)}` },
+          h("div", { class: "testa-scheda" }, h("b", null, nomeScheda(x)), h("span", { class: "tipo" }, TIPI_SCHEDA[x.tipo] || x.tipo)),
+          x.righe.length ? h("dl", { class: "scheda" }, x.righe.map((r) => (r.s ? h("dt", { class: "sotto" }, r.s) : [h("dt", null, r[0]), h("dd", null, valore(r))]))) : h("p", { class: "tenue piccolo" }, "Nessun numero in più."),
+        ),
+      );
+    }
+    return h(
+      "section",
+      null,
+      h("h2", null, `Tutti i dati del gioco · ${d.schede.length} ${d.schede.length === 1 ? "scheda" : "schede"}`),
+      h("p", { class: "tenue piccolo" }, `Come nella sezione «Detailed Weapon Statistics» della wiki${d.versione ? `, dati della versione ${d.versione}` : ""}. Una scheda per l'arma e una per ogni attacco: quelle rientrate partono dalla scheda sopra (per esempio l'esplosione di un proiettile). I nomi degli attacchi sono quelli dei dati del gioco.`),
+      h("div", { class: "schede-dati" }, schede),
+    );
+  }
+
   function paginaOggetto(main, id) {
     const o = oggetto(id);
     if (!o) return nonTrovato(main, "Oggetto");
@@ -731,6 +770,7 @@
       PB.scheda(o) ? h("section", null, h("h2", null, "Scheda"), h("div", { class: "pannello" }, PB.scheda(o))) : null,
       o.combattimento?.colpi?.length ? h("section", null, h("h2", null, "Attacchi (dati del gioco)"), h("div", { class: "pannello" }, tabellaColpi(o))) : null,
       controNemici(o),
+      struttureDistrutte(o),
       conPassiva.length
         ? h(
             "section",
@@ -750,6 +790,7 @@
             )
           : null,
         v.anatomia?.length ? [h("h2", null, "Anatomia"), h("div", { class: "pannello" }, tabellaAnatomia(v.anatomia))] : null,
+        datiCompleti(v.dati),
         sezioniWiki(v),
         patch(v),
       ]),
@@ -856,29 +897,49 @@
     ridisegna();
   }
 
-  function elencoEstetici(main, quale) {
+  function elencoEstetici(main, quale, id) {
     const elmi = quale === "elmi";
     const voci = (elmi ? stato.catalogo.elmi : stato.catalogo.mantelli) || [];
     const cerca = h("input", { type: "search", placeholder: elmi ? "Cerca un elmo" : "Cerca un mantello", "aria-label": "Cerca" });
     const elenco = h("div");
+    const conArmatura = (v) => (elmi && v.vista === "set" ? armature().find((a) => a.nome === v.nome) : null);
+    const riga = (v) => {
+      const armatura = conArmatura(v);
+      return h(
+        "details",
+        { class: "estetico", open: v.id === id, dataset: { id: v.id } },
+        h(
+          "summary",
+          { class: "riga riga-wiki" },
+          foto(v, "icona", { testa: true, vuota: elmi ? "⛑" : "▼" }),
+          h("div", { class: "testo" }, h("div", { class: "nome" }, v.nome), h("div", { class: "autore" }, [v.fonte, v.tipoFonte && !["Warbond", v.fonte].includes(v.tipoFonte) ? v.tipoFonte : null].filter(Boolean).join(" · ") || "–")),
+          h("div", { class: "valori" }, costoTesto(v.costo) ? h("span", null, costoTesto(v.costo)) : null),
+        ),
+        h(
+          "div",
+          { class: "dettaglio-estetico" },
+          v.icona ? h("img", { class: v.vista === "set" ? "set" : "", src: `/icone/${v.icona}`, alt: v.nome, loading: "lazy", decoding: "async" }) : null,
+          h(
+            "div",
+            null,
+            dati([
+              ["Da", v.fonte],
+              ["Tipo", v.tipoFonte !== v.fonte ? v.tipoFonte : null],
+              ["Costo", costoTesto(v.costo)],
+            ]),
+            armatura ? h("p", { class: "tenue piccolo" }, "Nell'immagine l'elmo è indossato con l'armatura dello stesso set: ", h("a", { href: `#/wiki/armatura/${armatura.id}` }, armatura.nome), ".") : null,
+            !v.icona ? h("p", { class: "tenue piccolo" }, v.immagineVietata ? "Sulla wiki c'è solo un disegno di un utente che chiede di usarlo solo lì: per rispetto non lo mostriamo." : "Sulla wiki non c'è un'immagine.") : null,
+          ),
+        ),
+      );
+    };
     const ridisegna = () => {
       const q = normale(cerca.value);
       const scelti = voci.filter((v) => !q || normale(`${v.nome} ${v.fonte || ""}`).includes(q));
-      elenco.replaceChildren(
-        ...(scelti.length
-          ? scelti.map((v) =>
-              h(
-                "div",
-                { class: "riga riga-wiki" },
-                h("span", { class: "icona vuota" }, elmi ? "⛑" : "▼"),
-                h("div", { class: "testo" }, h("div", { class: "nome" }, v.nome), h("div", { class: "autore" }, [v.fonte, v.tipoFonte && v.tipoFonte !== "Warbond" ? v.tipoFonte : null].filter(Boolean).join(" · ") || "–")),
-                h("div", { class: "valori" }, costoTesto(v.costo) ? h("span", null, costoTesto(v.costo)) : null),
-              ),
-            )
-          : [h("div", { class: "vuoto" }, "Niente con questo nome.")]),
-      );
+      elenco.replaceChildren(...(scelti.length ? scelti.map(riga) : [h("div", { class: "vuoto" }, "Niente con questo nome.")]));
     };
     cerca.addEventListener("input", ridisegna);
+    const senza = voci.filter((v) => !v.icona).length;
     monta(
       main,
       indietro("#/wiki/armature", "Armature"),
@@ -889,6 +950,7 @@
         elmi
           ? h("p", null, "Gli elmi non cambiano niente: valgono 100 per protezione, velocità e stamina, tutti uguali. La testa però è protetta dall'armatura del corpo: se il corpo ha più di 100 di protezione, anche i colpi alla testa fanno meno danni. ", h("a", { href: "#/wiki/meccaniche/armatura" }, "Come funziona"))
           : h("p", null, "I mantelli sono solo estetici: in gioco mostrano dei valori, ma non cambiano protezione, velocità o stamina."),
+        h("p", { class: "tenue piccolo" }, `Tocca una riga per vedere l'immagine più grande. Le immagini sono quelle ufficiali del gioco caricate sulla wiki${elmi ? " (per molti elmi c'è solo quella del set completo nell'armeria)" : ""}.${senza ? ` ${senza} senza immagine: sulla wiki ci sono solo disegni di un utente che chiede di usarli solo lì.` : ""}`),
       ),
       chips(
         [
@@ -904,6 +966,7 @@
       elenco,
     );
     ridisegna();
+    if (id) requestAnimationFrame(() => elenco.querySelector(`details[data-id="${CSS.escape(id)}"]`)?.scrollIntoView({ block: "center" }));
   }
 
   function paginaArmatura(main, id) {
@@ -973,13 +1036,101 @@
 
   // --- Strutture ---
 
+  const FAZIONI_STRUTTURE = [
+    ["tutte", "Di tutte le fazioni", null],
+    ["terminidi", "Terminidi", null],
+    ["automi", "Automi", null],
+    ["illuminati", "Illuminati", null],
+    ["superterra", "Super Terra", "Strutture vostre (mura delle colonie, cancelli, generatori, edifici delle megacittà): si rompono anche per sbaglio, con la stessa forza."],
+  ];
+  const GRUPPI_DEMOLIZIONE = ["Armi primarie", "Armi secondarie", "Granate", "Armi di supporto", "Zaini", "Aquile", "Orbitali", "Torrette", "Postazioni", "Veicoli", "Altri stratagemmi", "Dalla missione"];
+  const PLURALI_TIPO = { arma: "Armi di supporto", zaino: "Zaini", aquila: "Aquile", orbitale: "Orbitali", torretta: "Torrette", postazione: "Postazioni", veicolo: "Veicoli" };
+  // Fonti della tabella della wiki che non sono nel catalogo: cose della missione o del pianeta
+  const FONTI_MISSIONE = {
+    "NUX-223 Hellbomb": "la Hellbomb degli obiettivi",
+    Hellpod: "un Hellpod che atterra (rinforzi e stratagemmi)",
+    "SEAF Artillery": "l'artiglieria SEAF",
+    "SEAF SAM Site": "la postazione antiaerea SEAF",
+    "Planetary Defense Cannon": "il cannone di difesa planetaria",
+    "Ground All-Terrain Extraction Rig (GATER)": "il GATER",
+  };
+  // Dalla pagina Demolition e dalle pagine delle strutture della wiki
+  const SALUTE = "Ha anche salute (corazza 2, tutta durevole): si abbatte anche a forza di danni, per esempio con le armi anticarro.";
+  const NOTE_STRUTTURE = {
+    "Spore Spewer": SALUTE,
+    "Shrieker Nest Tower": SALUTE,
+    "Fabricator (Outer)": "Le fabbriche hanno anche salute e corazza: le armi anticarro le distruggono, con più colpi.",
+    "Bulk Fabricator (Outer)": "Le fabbriche hanno anche salute e corazza: le armi anticarro le distruggono, con più colpi.",
+    "Grounded Warp Ship (Outer)": "Ha anche salute e corazza: le armi anticarro la distruggono, con più colpi.",
+  };
+
+  function gruppoDemolizione(o) {
+    if (o.slot === "primaria") return "Armi primarie";
+    if (o.slot === "secondaria") return "Armi secondarie";
+    if (o.slot === "granata") return "Granate";
+    if (o.slot === "stratagemma") return PLURALI_TIPO[o.tipo] || "Altri stratagemmi";
+    return null;
+  }
+
+  // Chi distrugge una struttura, per gruppo: gli oggetti del catalogo (con l'attacco
+  // migliore) e le fonti della missione
+  function chiDemolisce(s) {
+    const c = stato.catalogo;
+    const gruppi = new Map();
+    const metti = (gruppo, voce) => gruppi.set(gruppo, [...(gruppi.get(gruppo) || []), voce]);
+    for (const o of c.oggetti) {
+      const gruppo = gruppoDemolizione(o);
+      const d = gruppo && M.demolizione(o, s, c);
+      if (d) metti(gruppo, { nome: o.nome, href: `#/wiki/oggetto/${o.id}`, ...d, diretto: colpoDiretto(o, d, c) });
+    }
+    const missione = new Map();
+    for (const d of c.demolizioni || []) {
+      if (d.id || d.forza < s.forza || (s.balistica && !d.esplosiva)) continue;
+      const prima = missione.get(d.nome);
+      if (!prima || d.forza > prima.forza) missione.set(d.nome, { ...d, descr: FONTI_MISSIONE[d.nome] || null });
+    }
+    if (missione.size) gruppi.set("Dalla missione", [...missione.values()]);
+    for (const l of gruppi.values()) l.sort((a, b) => Number(a.situazionale) - Number(b.situazionale) || a.nome.localeCompare(b.nome));
+    return GRUPPI_DEMOLIZIONE.filter((g) => gruppi.has(g)).map((g) => [g, gruppi.get(g)]);
+  }
+
+  const PARTICOLARE = "solo in casi particolari: quando l'oggetto esplode, si sovraccarica o viene distrutto";
+  const DIRETTO = "solo con un colpo diretto: è la forza del proiettile, l'esplosione ne ha meno";
+
+  // L'oggetto ha esplosioni, ma la forza che basta è quella del proiettile (colpo diretto)
+  function colpoDiretto(o, d, c) {
+    return !d.esplosiva && !d.situazionale && M.fontiDemolizione(o, c).some((f) => f.esplosiva && !f.situazionale);
+  }
+
+  function chipDemolizione(v) {
+    const titolo = [v.descr, v.attacco ? `attacco: ${v.attacco}` : null, `forza ${v.forza}${v.esplosiva ? ", esplosione" : ""}`, v.situazionale ? PARTICOLARE : null, v.diretto ? DIRETTO : null].filter(Boolean).join(" · ");
+    const dentro = [v.nome, h("span", { class: "forza" }, String(v.forza)), v.situazionale ? h("span", { class: "particolare" }, "*") : null, v.diretto ? h("span", { class: "particolare" }, "◎") : null];
+    return v.href ? h("a", { class: "chip", href: v.href, title: titolo }, dentro) : h("span", { class: "chip", title: titolo }, dentro);
+  }
+
+  function schedaStruttura(s) {
+    const gruppi = chiDemolisce(s);
+    const quanti = gruppi.reduce((n, [, l]) => n + l.filter((v) => !v.situazionale).length, 0);
+    return h(
+      "details",
+      { class: "struttura", open: quanti <= 24 },
+      h(
+        "summary",
+        null,
+        h("span", { class: "nome" }, s.nome),
+        h("span", { class: "forza-struttura", title: "Forza di demolizione che serve" }, `forza ${s.forza}`),
+        s.balistica ? h("span", { class: "serve-esplosione", title: "Serve un attacco esplosivo: i proiettili non bastano" }, "serve un'esplosione") : null,
+        h("span", { class: "quanti" }, quanti === 1 ? "1 oggetto" : `${quanti} oggetti`),
+      ),
+      NOTE_STRUTTURE[s.nome] ? h("p", { class: "tenue piccolo" }, NOTE_STRUTTURE[s.nome]) : null,
+      gruppi.length
+        ? gruppi.map(([g, lista]) => h("div", { class: "gruppo-demolizione" }, h("div", { class: "tenue piccolo" }, `${g} · ${lista.length}`), h("div", { class: "chips avvolte" }, lista.map(chipDemolizione))))
+        : h("p", { class: "tenue piccolo" }, "Nessun oggetto del catalogo ha abbastanza forza."),
+    );
+  }
+
   function paginaStrutture(main) {
-    const ordine = ["tutte", "terminidi", "automi", "illuminati"];
-    const nomi = { tutte: "Di tutte le fazioni", terminidi: "Terminidi", automi: "Automi", illuminati: "Illuminati" };
-    const perForza = (s) =>
-      stato.catalogo.oggetti
-        .filter((o) => colpiPiatti(o.combattimento).some((x) => x.tipo !== "stato" && (x.demolizione || 0) >= s.forza && (!s.balistica || x.tipo === "esplosione")))
-        .map((o) => o.nome);
+    const strutture = stato.catalogo.strutture || [];
     monta(
       main,
       indietro("#/wiki", "Wiki"),
@@ -987,34 +1138,66 @@
       h(
         "div",
         { class: "pannello testo-lungo", style: "margin-bottom:12px" },
-        h("p", null, "Per distruggere una struttura serve un attacco con abbastanza forza di demolizione (da 0 a 60): perforazione e danno non contano. I generatori di nemici (nidi, fabbriche, navi a terra) vogliono anche un'esplosione: i proiettili non bastano mai. ", h("a", { href: "#/wiki/pagina/demolition" }, "Pagina della wiki (inglese)")),
+        h("p", null, "Per distruggere una struttura basta un solo attacco con ", h("b", null, "forza di demolizione"), " almeno pari alla sua (da 10 a 60). Perforazione e danno non contano."),
+        h("p", null, "Alcune strutture (i buchi dei nidi, le prese d'aria delle fabbriche, la porta e lo scudo delle navi atterrate degli Illuminati) vogliono ", h("b", null, "anche"), " un'esplosione: lì un proiettile non basta, anche se ha la forza giusta. Per esempio il LAS-98 Laser Cannon ha forza 20 ma non chiude i buchi dei nidi. Per tutte le altre l'esplosione non serve: basta la forza."),
+        h("p", null, "Sotto ogni struttura ci sono le armi e gli stratagemmi che ce la fanno, con la loro forza. Delle esplosioni conta il centro: nel raggio esterno la forza cala."),
+        h("p", null, h("b", null, "◎"), " solo con un colpo diretto: l'oggetto esplode, ma la forza che basta è quella del proiettile (per esempio l'Eruptor: proiettile 30, esplosione 20). ", h("b", null, "*"), " solo in casi particolari, quando l'oggetto esplode, si sovraccarica o viene distrutto."),
+        h("p", { class: "tenue piccolo" }, "Forze dai dati del gioco e dalla tabella della wiki. ", h("a", { href: "#/wiki/pagina/demolition" }, "Pagina della wiki (inglese)")),
       ),
-      ordine.map((f) => {
-        const lista = (stato.catalogo.strutture || []).filter((s) => s.fazione === f).sort((a, b) => a.forza - b.forza || a.nome.localeCompare(b.nome));
+      FAZIONI_STRUTTURE.map(([f, nome, nota]) => {
+        const lista = strutture.filter((s) => s.fazione === f).sort((a, b) => a.forza - b.forza || a.nome.localeCompare(b.nome));
         if (!lista.length) return null;
-        return h(
-          "section",
-          null,
-          h("h2", null, nomi[f]),
-          h(
-            "div",
-            { class: "pannello scorre" },
-            h(
-              "table",
-              { class: "tabella" },
-              h("thead", null, h("tr", null, h("th", null, "Struttura"), h("th", { class: "num" }, "Forza"), h("th", null, "Serve un'esplosione"), h("th", { class: "num", title: "Oggetti del catalogo che la distruggono" }, "Oggetti che bastano"))),
-              h(
-                "tbody",
-                null,
-                lista.map((s) => {
-                  const bastano = perForza(s);
-                  return h("tr", null, h("td", null, s.nome), h("td", { class: "num" }, String(s.forza)), h("td", null, s.balistica ? "sì" : "no"), h("td", { class: "num", title: bastano.slice(0, 30).join(", ") }, String(bastano.length)));
-                }),
-              ),
-            ),
-          ),
-        );
+        return h("section", null, h("h2", null, nome), nota ? h("p", { class: "tenue piccolo" }, nota) : null, lista.map(schedaStruttura));
       }),
+    );
+  }
+
+  // Nella pagina di un oggetto: le strutture che distrugge
+  function struttureDistrutte(o) {
+    const c = stato.catalogo;
+    const strutture = c.strutture || [];
+    const fonti = M.fontiDemolizione(o, c);
+    if (!strutture.length || !fonti.length) return null;
+    const elenco = strutture.map((s) => ({ s, d: M.demolizione(o, s, c) })).filter((x) => x.d);
+    const normali = fonti.filter((f) => !f.situazionale);
+    const migliore = (l) => l.reduce((m, f) => (!m || f.forza > m.forza || (f.forza === m.forza && f.esplosiva) ? f : m), null);
+    const massima = migliore(normali.length ? normali : fonti);
+    const esplosione = migliore(normali.filter((f) => f.esplosiva));
+    const quante = elenco.filter((x) => !x.d.situazionale).length;
+    const forzaTesto = massima.esplosiva
+      ? `${massima.forza}, con un'esplosione`
+      : esplosione
+        ? `${massima.forza} con un colpo diretto; l'esplosione arriva a ${esplosione.forza}`
+        : `${massima.forza}, senza esplosioni (non basta per le strutture che vogliono un'esplosione)`;
+    return h(
+      "section",
+      null,
+      h("h2", null, `Strutture che distrugge · ${quante} su ${strutture.length}`),
+      h(
+        "div",
+        { class: "pannello" },
+        h("p", { class: "piccolo", style: "margin-top:0" }, `Forza di demolizione massima: ${forzaTesto}${massima.situazionale ? ` (${PARTICOLARE})` : ""}.`),
+        elenco.length
+          ? FAZIONI_STRUTTURE.map(([f, nome]) => {
+              const qui = elenco.filter((x) => x.s.fazione === f).sort((a, b) => a.s.forza - b.s.forza || a.s.nome.localeCompare(b.s.nome));
+              if (!qui.length) return null;
+              return h(
+                "div",
+                { class: "gruppo-demolizione" },
+                h("div", { class: "tenue piccolo" }, nome),
+                h(
+                  "div",
+                  { class: "chips avvolte" },
+                  qui.map(({ s, d }) => {
+                    const diretto = colpoDiretto(o, d, c);
+                    return h("a", { class: "chip", href: "#/wiki/strutture", title: [`serve forza ${s.forza}${s.balistica ? " e un'esplosione" : ""}`, d.situazionale ? PARTICOLARE : null, diretto ? DIRETTO : null].filter(Boolean).join(" · ") }, s.nome, h("span", { class: "forza" }, String(s.forza)), d.situazionale ? h("span", { class: "particolare" }, "*") : null, diretto ? h("span", { class: "particolare" }, "◎") : null);
+                  }),
+                ),
+              );
+            })
+          : h("p", { class: "tenue piccolo" }, "Non ha abbastanza forza per nessuna struttura."),
+        h("p", { class: "tenue piccolo" }, "◎ solo con un colpo diretto del proiettile; * solo in casi particolari. ", h("a", { href: "#/wiki/strutture" }, "Tutte le strutture e chi le distrugge")),
+      ),
     );
   }
 
@@ -1041,7 +1224,7 @@
     if (sezione === "nemico") return paginaNemico(main, id);
     if (sezione === "oggetto") return paginaOggetto(main, id);
     if (sezione === "armature") return elencoArmature(main, "corpo");
-    if (sezione === "elmi" || sezione === "mantelli") return elencoEstetici(main, sezione);
+    if (sezione === "elmi" || sezione === "mantelli") return elencoEstetici(main, sezione, id);
     if (sezione === "armatura") return paginaArmatura(main, id);
     if (sezione === "strutture") return paginaStrutture(main);
     if (sezione === "pagina") return paginaWiki(main, id);

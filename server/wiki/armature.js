@@ -58,7 +58,7 @@ function costruisciArmature(tabelle, pagine, { slug, citazione }) {
     if (!nome) continue;
     if (tipo === "helmet") {
       const id = slug(nome);
-      if (!elmi.some((x) => x.id === id)) elmi.push({ id, nome, fonte: fonte(r.source), costo: costo(r.cost), ordine: numero(r.displayorder) });
+      if (!elmi.some((x) => x.id === id)) elmi.push({ id, nome, fonte: fonte(r.source), costo: costo(r.cost), ordine: numero(r.displayorder), immagine: W.pulisci(r.image) || null });
       continue;
     }
     if (!PESI[tipo]) continue;
@@ -96,7 +96,7 @@ function costruisciArmature(tabelle, pagine, { slug, citazione }) {
     const nome = W.pulisci(r.title);
     const id = slug(nome);
     if (!nome || mantelli.some((x) => x.id === id)) continue;
-    mantelli.push({ id, nome, fonte: fonte(r.source), costo: costo(r.cost), tipoFonte: W.pulisci(r.source_type ?? r["source type"]) || null, ordine: numero(r.displayorder) });
+    mantelli.push({ id, nome, fonte: fonte(r.source), costo: costo(r.cost), tipoFonte: W.pulisci(r.source_type ?? r["source type"]) || null, ordine: numero(r.displayorder), immagine: W.pulisci(r.image) || null });
   }
   const perNome = (a, b) => a.nome.localeCompare(b.nome);
   armature.sort((a, b) => ["leggera", "media", "pesante"].indexOf(a.peso) - ["leggera", "media", "pesante"].indexOf(b.peso) || (a.protezione ?? 0) - (b.protezione ?? 0) || perNome(a, b));

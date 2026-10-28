@@ -355,3 +355,58 @@ label.campo > span { display: block; font-size: 0.72rem; color: var(--tenue); te
 .chips .chip { flex: none; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--bordo-forte); color: var(--testo); font-size: 0.75rem; font-weight: 700; text-decoration: none; }
 .chips .chip:hover { border-color: var(--giallo); }
 .sezione-guida, #m-pagine { scroll-margin-top: 110px; }
+
+/* --- Immagini del set (armature, elmi): foto verticali dell'armeria --- */
+.icona.foto.set img { object-position: 50% 0; }
+/* Elmi con l'immagine del set: ingrandita sulla testa (in alto al centro, come nell'armeria) */
+.icona.foto.testa { position: relative; }
+.icona.foto.testa img { position: absolute; top: 0; left: -61%; width: 222%; height: auto; max-width: none; object-fit: fill; }
+.foto-grande.set { width: 116px; height: 232px; }
+.foto-grande.set img { object-fit: contain; }
+
+/* --- Elmi e mantelli: righe che si aprono con l'immagine grande --- */
+details.estetico > summary { list-style: none; }
+details.estetico > summary::-webkit-details-marker { display: none; }
+details.estetico > summary .icona { width: 48px; height: 48px; }
+details.estetico[open] > summary { margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-color: var(--bordo-forte); }
+.dettaglio-estetico { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; padding: 10px; margin-bottom: 8px; background: var(--pannello2); border: 1px solid var(--bordo-forte); border-top: 0; border-radius: 0 0 var(--raggio) var(--raggio); }
+.dettaglio-estetico img { width: 160px; height: 160px; object-fit: contain; background: #000; border-radius: 6px; border: 1px solid var(--bordo); flex: none; }
+.dettaglio-estetico img.set { width: 140px; height: 280px; }
+.dettaglio-estetico > div { flex: 1 1 200px; min-width: 0; }
+
+/* --- Strutture: chi le distrugge --- */
+details.struttura { background: var(--pannello); border: 1px solid var(--bordo); border-radius: var(--raggio); padding: 0 12px; margin-bottom: 8px; }
+details.struttura > summary { cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 10px 0; }
+details.struttura > summary::-webkit-details-marker { display: none; }
+details.struttura > summary::before { content: "▸"; color: var(--tenue); width: 10px; }
+details.struttura[open] > summary::before { content: "▾"; }
+details.struttura > summary .nome { font-weight: 800; flex: 1 1 160px; min-width: 0; }
+details.struttura[open] { padding-bottom: 10px; }
+.forza-struttura { font-size: 0.75rem; font-weight: 900; padding: 1px 8px; border-radius: 999px; background: var(--giallo); color: var(--inchiostro); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.serve-esplosione { font-size: 0.72rem; font-weight: 800; padding: 1px 8px; border-radius: 999px; background: #6b3a0c; color: #ffc58a; white-space: nowrap; }
+details.struttura > summary .quanti { font-size: 0.75rem; color: var(--tenue); white-space: nowrap; }
+.gruppo-demolizione { margin-top: 8px; }
+.gruppo-demolizione .chips { margin-top: 4px; }
+.chips .chip .forza { margin-left: 6px; font-weight: 800; color: var(--tenue); font-variant-numeric: tabular-nums; }
+.chips .chip .particolare { margin-left: 2px; color: var(--giallo); }
+span.chip { cursor: help; }
+
+/* --- Tutti i dati del gioco: una scheda per attacco --- */
+.schede-dati { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); align-items: start; }
+.scheda-dati { padding: 10px 12px; border-left: 3px solid var(--giallo); }
+.scheda-dati.livello-1 { border-left-color: #8a8a8a; }
+.scheda-dati.livello-2 { border-left-color: #5a5a5a; }
+.scheda-dati.livello-3 { border-left-color: #3a3a3a; }
+.testa-scheda { display: flex; gap: 8px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; }
+.testa-scheda b { overflow-wrap: anywhere; }
+.testa-scheda .tipo { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tenue); }
+.scheda dt.sotto { grid-column: 1 / -1; margin-top: 6px; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--giallo); }
+.scheda-dati .scheda dd { overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .scheda-dati.livello-1 { margin-left: 8px; }
+  .scheda-dati.livello-2, .scheda-dati.livello-3 { margin-left: 16px; }
+}
+
+/* --- Moduli della nave nella scheda --- */
+.con-moduli { color: #b9f2c8; }
+.moduli-nave { margin-top: 6px; }

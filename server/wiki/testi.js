@@ -164,15 +164,19 @@ function schede(testo) {
     .replace(/<\/?tabber>/gi, "");
 }
 
-// Celle di una riga di tabella: "| a || b" oppure "! a !! b", attributi tolti
+// Celle di una riga di tabella: "| a || b" oppure "! a !! b", attributi tolti (tranne
+// rowspan: la cella vale anche per le righe sotto)
 function celle(riga) {
   const corpo = riga.slice(1);
   const sep = riga[0] === "!" ? ["!!", "||"] : ["||"];
   return spezzaFuori(corpo, sep).map((c) => {
     const i = fuori(c, "|");
     // "scope="col" width="10%" | Testo": prima del | ci sono solo attributi
-    if (i >= 0 && /^[\s\w-]+=/.test(c.slice(0, i)) && !c.slice(0, i).includes("[[")) return c.slice(i + 1).trim();
-    return c.trim();
+    if (i >= 0 && /^[\s\w-]+=/.test(c.slice(0, i)) && !c.slice(0, i).includes("[[")) {
+      const righe = Number(c.slice(0, i).match(/rowspan\s*=\s*["']?(\d+)/i)?.[1] || 1);
+      return { testo: c.slice(i + 1).trim(), righe };
+    }
+    return { testo: c.trim(), righe: 1 };
   });
 }
 
@@ -239,7 +243,7 @@ function estraiTabelle(testo, ctx) {
     }
     if (t.startsWith("|") || t.startsWith("!")) {
       if (!tab.corrente) tab.corrente = [];
-      for (const c of celle(t)) tab.corrente.push({ testo: c, testa: t[0] === "!" });
+      for (const c of celle(t)) tab.corrente.push({ testo: c.testo, testa: t[0] === "!", righe: c.righe });
       continue;
     }
     // riga che continua la cella precedente
@@ -258,8 +262,29 @@ function estraiTabelle(testo, ctx) {
   return { testo: out.join("\n"), tabelle };
 }
 
+// Una cella con rowspan si ripete nelle righe sotto, così le colonne restano allineate
+function conRowspan(righe) {
+  const aperte = [];
+  return righe.map((r) => {
+    const out = [];
+    let i = 0;
+    for (let col = 0; i < r.length || aperte.slice(col).some((a) => a?.restano > 0); col++) {
+      if (aperte[col]?.restano > 0) {
+        out.push(aperte[col].cella);
+        aperte[col].restano--;
+        continue;
+      }
+      if (i >= r.length) continue;
+      const c = r[i++];
+      out.push(c);
+      aperte[col] = c.righe > 1 ? { cella: c, restano: c.righe - 1 } : null;
+    }
+    return out;
+  });
+}
+
 function bloccoTabella(tab, ctx) {
-  const righe = tab.righe.filter((r) => r.length);
+  const righe = conRowspan(tab.righe.filter((r) => r.length));
   if (!righe.length) return null;
   const pezziCella = (c) => inline(c.testo.replace(/(^|\n)\s*[*#:]+\s*/g, "$1").trim().replace(/\n+/g, " / "), ctx);
   let testa = null;

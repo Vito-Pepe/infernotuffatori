@@ -185,7 +185,7 @@ test("catalogo dal materiale della wiki", () => {
   assert.deepEqual(charger.parti.map((p) => p.nome), ["Main", "Head"], "solo parti fatali");
   assert.equal(charger.parti[1].durevole, 0.75);
   // Nella wiki l'anatomia è completa, anche con le parti non fatali
-  assert.equal(c.versione, 2);
+  assert.equal(c.versione, 3);
   assert.deepEqual(c.wiki.nemici.charger.anatomia.map((p) => [p.nome, p.fatale, p.resistenzaEsplosioni]), [["Main", true, 0.25], ["Head", true, 0.25], ["Claws (2)", false, 1]]);
   assert.deepEqual(c.armature, [], "senza tabelle Cargo niente armature");
   assert.deepEqual(c.strutture, [
