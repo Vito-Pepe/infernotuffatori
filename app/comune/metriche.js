@@ -372,9 +372,10 @@
   // --- Potenza di un oggetto contro i nemici di una fazione ---
 
   // I nemici di una fazione per i punteggi: quelli di sempre. Le sotto-fazioni (Cyborg Legion,
-  // Jet Brigade, Predator Strain...) compaiono solo in alcune missioni: stanno nella Wiki, non qui
+  // Jet Brigade, Predator Strain...) compaiono solo in alcune missioni, e navi e boss (Dropship,
+  // Leviathan, Hive Lord...) non si combattono come gli altri: stanno nella Wiki, non qui
   function nemiciDi(catalogo, fazione) {
-    return (catalogo.nemici || []).filter((n) => n.fazione === fazione && !n.sottofazione && n.parti?.length);
+    return (catalogo.nemici || []).filter((n) => n.fazione === fazione && !n.sottofazione && !n.speciale && n.parti?.length);
   }
 
   function analizzaOggetto(o, nemici) {

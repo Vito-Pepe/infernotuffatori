@@ -54,7 +54,7 @@ function grezzo() {
       terminidi: ["Charger", "Bug Hole"],
       // Il Charger anche fuori posto, per vedere che non diventa un Automa
       automi: ["Agitator", "Trooper", "Charger", "Stalker"],
-      illuminati: [],
+      illuminati: ["Warp Ship"],
     },
     pagine: {
       "AR-23 Liberator": pagina("AR-23 Liberator", `{{Infobox Weapon
@@ -122,6 +122,15 @@ function grezzo() {
 }}
 {{Anatomy Table|
   {{Anatomy Row | part_name = Main | health = 125 | av = 1 | durability = 0% | percent_to_main = - | fatal = Yes | exdr = 0% }}
+}}`),
+      // Una nave: nella Wiki sì, nei punteggi no
+      "Warp Ship": pagina("Warp Ship", `{{Infobox Enemy
+| faction = Illuminate
+| size = 3
+| health = 3,500
+}}
+{{Anatomy Table|
+  {{Anatomy Row | part_name = Main | health = 3,500 | av = 5 | durability = 0% | percent_to_main = - | fatal = Yes | exdr = 0% }}
 }}`),
       // Un Terminide nella categoria degli Automi
       Stalker: pagina("Stalker", `{{Infobox Enemy
@@ -225,6 +234,10 @@ test("catalogo dal materiale della wiki", () => {
   assert.equal(trooper.sottofazione, undefined);
   assert.deepEqual(c.nemici.filter((n) => n.id === "charger").map((n) => n.fazione), ["terminidi"]);
   assert.ok(!c.nemici.some((n) => n.id === "stalker"), "un Terminide nella categoria degli Automi resta fuori");
+  const nave = c.nemici.find((n) => n.id === "warp-ship");
+  assert.equal(nave.fazione, "illuminati");
+  assert.equal(nave.speciale, "nave");
+  assert.equal(trooper.speciale, undefined);
   assert.deepEqual(c.armature, [], "senza tabelle Cargo niente armature");
   assert.deepEqual(c.strutture, [
     { fazione: "terminidi", nome: "Bug Hole (Inner)", balistica: true, forza: 20 },

@@ -18,8 +18,8 @@ const VERSIONE = 4;
 // Stratagemmi degli eventi (fuochi d'artificio, sorvoli): non servono in battaglia
 const ESCLUSI = new Set(["Eagle Fly By", "Orbital Confetti"]);
 
-// Nemici che non si combattono come gli altri (navi, boss di eventi)
-const NEMICI_ESCLUSI = new Set(["Dropship", "Warp Ship", "Illuminate Overship", "Hive Lord", "Leviathan"]);
+// Nemici che non si combattono come gli altri (navi, boss di eventi): nella Wiki sì, nei punteggi no
+const NAVI_E_BOSS = new Map([["Dropship", "nave"], ["Warp Ship", "nave"], ["Illuminate Overship", "nave"], ["Leviathan", "nave"], ["Hive Lord", "boss"]]);
 const FAZIONI = { terminidi: "Terminids", automi: "Automatons", illuminati: "Illuminate" };
 
 const TIPI_STRATAGEMMA = {
@@ -573,7 +573,7 @@ function nemico(pagina, fazione) {
   const base = (f) => f.toLowerCase().replace(/s$/, "");
   const principale = Boolean(scritta) && base(scritta) === base(FAZIONI[fazione]);
   const altra = !principale && Object.values(FAZIONI).some((f) => base(f) === base(scritta || ""));
-  if (!scritta || altra || NEMICI_ESCLUSI.has(pagina.titolo)) return null;
+  if (!scritta || altra) return null;
   const tabella = W.templates(pagina.testo).find((t) => t.nome === "anatomy table");
   const parti = tabella ? W.interni(tabella.corpo, "Anatomy Row").map(parte) : [];
   const main = parti.find((x) => /main/i.test(x.nome) && typeof x.salute === "number");
@@ -588,6 +588,7 @@ function nemico(pagina, fazione) {
     nome: pagina.titolo,
     fazione,
     ...(principale ? {} : { sottofazione: scritta }),
+    ...(NAVI_E_BOSS.has(pagina.titolo) ? { speciale: NAVI_E_BOSS.get(pagina.titolo) } : {}),
     taglia,
     classe: classeNemico(main.av, salute),
     salute,
@@ -830,9 +831,9 @@ function controlla(nuovo, vecchio) {
   }
   const conColpi = (nuovo.oggetti || []).filter((o) => o.combattimento?.colpi?.length).length;
   if (conColpi < 100) problemi.push(`statistiche di combattimento solo per ${conColpi} oggetti`);
-  // Contano i nemici di sempre, quelli dei punteggi: le sotto-fazioni non bastano
+  // Contano i nemici di sempre, quelli dei punteggi: sotto-fazioni, navi e boss non bastano
   for (const f of Object.keys(FAZIONI)) {
-    if ((nuovo.nemici || []).filter((x) => x.fazione === f && !x.sottofazione).length < 5) problemi.push(`pochi nemici per ${f}`);
+    if ((nuovo.nemici || []).filter((x) => x.fazione === f && !x.sottofazione && !x.speciale).length < 5) problemi.push(`pochi nemici per ${f}`);
   }
   if ((nuovo.strutture || []).length < 10) problemi.push("tabella delle strutture non letta");
   // Armature: se mancano del tutto l'aggiornatore tiene quelle di prima; se sono poche,
