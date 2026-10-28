@@ -24,7 +24,7 @@ async function avvia() {
   porta = await portaLibera();
   // La wiki finta è una porta chiusa: l'aggiornamento a mano deve fallire e lasciare il catalogo com'è
   processo = spawn(process.execPath, [path.join(__dirname, "..", "server", "server.js")], {
-    env: { ...process.env, PORT: String(porta), DATA_DIR: cartellaDati, AGGIORNA_WIKI: "0", AMMINISTRATORI: "capo@esempio.it", WIKI_URL: "http://127.0.0.1:9", WIKI_PAUSA_MS: "0", WIKI_RIPROVA_MS: "0", IDENTITA_PROVA: "" },
+    env: { ...process.env, PORT: String(porta), DATA_DIR: cartellaDati, AGGIORNA_WIKI: "0", AGGIORNA_ORDINI: "0", GUERRA_API_URL: "http://127.0.0.1:9", AMMINISTRATORI: "capo@esempio.it", WIKI_URL: "http://127.0.0.1:9", WIKI_PAUSA_MS: "0", WIKI_RIPROVA_MS: "0", IDENTITA_PROVA: "" },
     stdio: ["ignore", "pipe", "pipe"],
   });
   await new Promise((ok) => processo.stdout.on("data", (d) => String(d).includes("in ascolto") && ok()));

@@ -6,6 +6,7 @@
   const VOCI = [
     ["elenco", "#/", "Build"],
     ["wiki", "#/wiki", "Wiki"],
+    ["ordini", "#/ordini", "Ordini"],
     ["nuova", "#/nuova", "Nuova"],
     ["importa", "#/importa", "Importa"],
     ["novita", "#/novita", "Novità"],
